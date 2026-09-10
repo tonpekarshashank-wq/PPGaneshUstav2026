@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Palladium Plus Ganeshotsav">
+  <rect width="512" height="512" rx="96" fill="#fff8e6"/>
+  <circle cx="256" cy="256" r="180" fill="#9f1239"/>
+  <circle cx="256" cy="256" r="132" fill="#d97706"/>
+  <path d="M256 120c-54 0-98 42-98 94 0 35 20 66 50 82v64h96v-64c30-16 50-47 50-82 0-52-44-94-98-94Z" fill="#fff8e6"/>
+  <path d="M219 217c0-21 17-38 37-38s37 17 37 38c0 38-74 38-74 0Z" fill="#6b102a"/>
+  <path d="M204 390h104" stroke="#fff8e6" stroke-width="28" stroke-linecap="round"/>
+</svg>
