@@ -77,7 +77,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto grid max-w-[1120px] gap-7 px-4 py-8 text-sm text-ink-muted lg:grid-cols-[1.2fr_.8fr] lg:items-start lg:py-10">
           <div>
             <p className="font-latinDisplay text-[17px] leading-tight text-ink">Palladium Plus Society Ganeshotsav 2026</p>
-            <p className="mt-1 text-[13px] leading-6 text-ink-muted">Organised by the Ganeshotsav Committee · Pune</p>
+            <p className="mt-1 text-[13px] leading-6 text-ink-muted">Festival Committee - Palladium Plus</p>
           </div>
           <div className="grid grid-cols-2 gap-6">
             <nav aria-label="Footer pages">
@@ -89,10 +89,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                 <Link href="/winners" className="hover:text-accent-700">Winners</Link>
               </div>
             </nav>
-            <nav aria-label="Footer committee">
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-soft">Committee</p>
+            <nav aria-label="Footer resources">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-soft">Resources</p>
               <div className="mt-3 grid gap-1 font-semibold leading-7 text-ink-muted">
-                <Link href="/more#committee-contact" className="hover:text-accent-700">Contact</Link>
                 <Link href="/schedule-pamphlet.jpeg" className="hover:text-accent-700">Pamphlet</Link>
                 <Link href="/admin/login" className="hover:text-accent-700">Admin sign-in</Link>
               </div>

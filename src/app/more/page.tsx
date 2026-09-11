@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, Eye, LockKeyhole, MessageCircle } from "lucide-react";
+import { Download, Eye, LockKeyhole } from "lucide-react";
 
 const items = [
   {
@@ -17,12 +17,6 @@ const items = [
     download: true
   },
   {
-    href: "#committee-contact",
-    label: "Committee contacts",
-    helper: "Contact details will be shared by the committee.",
-    icon: MessageCircle
-  },
-  {
     href: "/admin/login",
     label: "Admin sign in",
     helper: "Committee-only access.",
@@ -36,7 +30,7 @@ export default function MorePage() {
       <section className="rounded-lg bg-accent-700 p-5 text-white shadow-md">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent-100">More</p>
         <h1 className="mt-3 font-latinDisplay text-4xl leading-none">Resident links</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">Quick access to festival resources, committee updates, and admin sign-in.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">Quick access to festival resources and admin sign-in.</p>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2">
@@ -75,11 +69,6 @@ export default function MorePage() {
             </Link>
           );
         })}
-      </section>
-
-      <section id="committee-contact" className="rounded-md bg-surface p-4 text-sm leading-6 text-ink-muted">
-        <p className="font-bold text-ink">Committee contacts</p>
-        <p className="mt-1">Contact details are intentionally not hard-coded here. The committee can publish the official number or WhatsApp link when ready.</p>
       </section>
     </div>
   );

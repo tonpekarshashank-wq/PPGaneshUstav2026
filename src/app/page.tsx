@@ -178,7 +178,7 @@ export default async function HomePage() {
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.65fr]">
         <section aria-labelledby="pamphlet-heading" className="overflow-hidden rounded-lg bg-card shadow-md">
           <div className="grid h-full gap-0 md:grid-cols-[.95fr_1.05fr]">
-            <a href="/schedule-pamphlet.jpeg" target="_blank" rel="noreferrer" className="block bg-surface p-3">
+            <a href="/schedule-pamphlet.jpeg" target="_blank" rel="noreferrer" className="block bg-accent-700 p-3">
               <Image
                 src="/schedule-pamphlet.jpeg"
                 alt="Palladium Plus Society Ganeshotsav 2026 schedule pamphlet"
