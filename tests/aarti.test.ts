@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { generateAartiSlots } from "@/data/seed";
-import { canCreateBooking, hashMobile } from "@/lib/booking";
+import { canCreateBooking, hashMobile, isAllowedFlatNumber } from "@/lib/booking";
 import type { AartiBooking, BookingInput } from "@/lib/types";
 
 describe("aarti slots", () => {
+  it("validates allowed society flat ranges", () => {
+    ["101", "106", "201", "606", "1001", "1006", "1101", "1106"].forEach((flat) => {
+      expect(isAllowedFlatNumber(flat)).toBe(true);
+    });
+    ["100", "107", "207", "907", "1007", "1011", "1107", "1201", "A101"].forEach((flat) => {
+      expect(isAllowedFlatNumber(flat)).toBe(false);
+    });
+  });
+
   it("generates the exact confirmed aarti schedule", () => {
     const slots = generateAartiSlots();
     expect(slots.find((slot) => slot.eventDate === "2026-09-14")).toBeUndefined();

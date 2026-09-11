@@ -64,6 +64,7 @@ export type AartiBooking = {
   wing: string;
   flatNumber: string;
   mobileHash: string;
+  mobileNumber?: string;
   participantCount: number;
   note?: string;
   status: BookingStatus;

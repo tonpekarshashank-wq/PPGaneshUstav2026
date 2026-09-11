@@ -1,11 +1,19 @@
 import { z } from "zod";
 import type { AartiBooking, AartiSlot, BookingInput, DuplicatePolicy } from "@/lib/types";
 
+export function isAllowedFlatNumber(flatNumber: string): boolean {
+  const value = Number(flatNumber.trim());
+  if (!Number.isInteger(value)) return false;
+  const floor = Math.floor(value / 100);
+  const unit = value % 100;
+  return floor >= 1 && floor <= 11 && unit >= 1 && unit <= 6;
+}
+
 export const bookingInputSchema = z.object({
   slotId: z.string().min(1),
   residentName: z.string().trim().min(2).max(80),
   wing: z.string().trim().min(1).max(10).regex(/^[A-Za-z0-9 -]+$/),
-  flatNumber: z.string().trim().min(1).max(10).regex(/^[A-Za-z0-9 -]+$/),
+  flatNumber: z.string().trim().regex(/^\d{3,4}$/).refine(isAllowedFlatNumber),
   mobile: z.string().trim().regex(/^(\+91[- ]?)?[6-9]\d{9}$/),
   participantCount: z.coerce.number().int().min(1).max(10),
   note: z.string().trim().max(240).optional(),

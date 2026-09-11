@@ -5,7 +5,7 @@ import { submitAartiBooking } from "@/app/aarti/actions";
 import { BiTitle } from "@/components/BiTitle";
 import { adminStorageKeys, readStorageList, writeStorageList } from "@/lib/local-storage";
 import type { AartiBooking, AartiSlot, BookingInput, FestivalSettings } from "@/lib/types";
-import { bookingReference, canCreateBooking, hashMobile, normalizeFlat } from "@/lib/booking";
+import { bookingReference, canCreateBooking, hashMobile, isAllowedFlatNumber, normalizeFlat } from "@/lib/booking";
 import { festivalDates, formatDateIST, formatTimeIST } from "@/lib/time";
 
 type Props = {
@@ -30,6 +30,10 @@ function periodText(period: AartiSlot["period"]) {
 
 function bookingFlat(booking: AartiBooking) {
   return `${booking.wing.toUpperCase()}-${booking.flatNumber.toUpperCase()}`;
+}
+
+function bookingSlotTime(booking: AartiBooking, slots: AartiSlot[]) {
+  return slots.find((slot) => slot.id === booking.slotId)?.startsAt ?? booking.createdAt;
 }
 
 function officialAartiSlots(existingSlots: AartiSlot[]): AartiSlot[] {
@@ -148,7 +152,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
     const singleBookingSlot = { ...enrichedSlot, capacity: 1, waitlistEnabled: false };
     const result = canCreateBooking(input, singleBookingSlot, bookings, settings.duplicatePolicy);
     if (!result.ok) {
-      setMessage(result.reason);
+      setMessage(isAllowedFlatNumber(input.flatNumber) ? result.reason : "Please enter a valid flat number between 101-106 and 1101-1106.");
       return;
     }
     if (result.existing) {
@@ -163,7 +167,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
         return;
       }
       saveBookings([...bookings.filter((item) => item.id !== response.booking?.id), response.booking]);
-      setMessage(`Slot booked: ${response.booking.reference}`);
+      setMessage(`Slot booked: ${response.booking.residentName}`);
       return;
     }
 
@@ -175,6 +179,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       wing: input.wing.trim().toUpperCase(),
       flatNumber: input.flatNumber.trim().toUpperCase(),
       mobileHash: hashMobile(input.mobile),
+      mobileNumber: normalizeMobileForDisplay(input.mobile),
       participantCount: input.participantCount,
       note: "",
       status: result.status,
@@ -183,10 +188,17 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       createdAt: new Date().toISOString()
     };
     saveBookings([...bookings, booking]);
-    setMessage(`Slot booked: ${booking.reference}`);
+    setMessage(`Slot booked: ${booking.residentName}`);
   }
 
-  const bookedSlots = bookings.filter((booking) => booking.status === "confirmed");
+  const bookedSlots = bookings
+    .filter((booking) => booking.status === "confirmed")
+    .sort((a, b) => bookingSlotTime(a, displaySlots).localeCompare(bookingSlotTime(b, displaySlots)));
+
+  function dateFullyBooked(date: string) {
+    const slotsForDate = displaySlots.filter((slot) => slot.eventDate === date);
+    return slotsForDate.length > 0 && slotsForDate.every((slot) => bookings.some((booking) => booking.slotId === slot.id && booking.status === "confirmed"));
+  }
 
   return (
     <div className="space-y-5 lg:grid lg:grid-cols-[0.95fr_1.05fr] lg:gap-5 lg:space-y-0">
@@ -196,6 +208,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
           {festivalDates.map((date) => {
             const parts = dayParts(date);
             const hasSlots = displaySlots.some((slot) => slot.eventDate === date);
+            const fullyBooked = dateFullyBooked(date);
             const active = selectedDate === date;
             return (
               <button
@@ -207,8 +220,8 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
                   setSelectedDate(date);
                   setSelectedSlotId(nextSlot?.id ?? "");
                 }}
-                className={`${active ? "bg-accent text-white" : "bg-surface text-ink"} ${hasSlots ? "" : "opacity-45"} flex h-[72px] w-[52px] shrink-0 flex-col items-center justify-center rounded-[16px] text-center transition-colors`}
-                aria-label={`${formatDateIST(date)}${hasSlots ? "" : ", no aarti booking"}`}
+                className={`${active ? "bg-accent text-white" : fullyBooked ? "bg-neutral-300 text-ink-muted" : "bg-surface text-ink"} ${hasSlots ? "" : "opacity-45"} flex h-[72px] w-[52px] shrink-0 flex-col items-center justify-center rounded-[16px] text-center transition-colors`}
+                aria-label={`${formatDateIST(date)}${hasSlots ? fullyBooked ? ", fully booked" : "" : ", no aarti booking"}`}
               >
                 <span className={`text-[10px] font-bold uppercase ${active ? "text-white/85" : "text-ink-soft"}`}>{parts.weekday}</span>
                 <span className="font-latinDisplay text-[20px] leading-none">{parts.day}</span>
@@ -282,9 +295,22 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
               <label className="grid min-w-0 gap-1.5 text-[12px] font-bold text-ink-muted">Wing<select required value={form.wing} onChange={(e) => setForm({ ...form, wing: e.target.value })} className="min-h-12 w-full rounded-pill border border-ink/20 bg-card px-4 text-[15px] font-normal text-ink">
                 {["E", "F", "G", "H"].map((wing) => <option key={wing} value={wing}>{wing}</option>)}
               </select></label>
-              <label className="grid min-w-0 gap-1.5 text-[12px] font-bold text-ink-muted">Flat<input required value={form.flatNumber} onChange={(e) => setForm({ ...form, flatNumber: e.target.value })} className="min-h-12 w-full rounded-pill border border-ink/20 px-4 text-[15px] font-normal uppercase text-ink" /></label>
+              <label className="grid min-w-0 gap-1.5 text-[12px] font-bold text-ink-muted">
+                Flat
+                <input
+                  required
+                  inputMode="numeric"
+                  pattern="([1-9]0[1-6]|100[1-6]|110[1-6])"
+                  value={form.flatNumber}
+                  onChange={(e) => setForm({ ...form, flatNumber: e.target.value.replace(/\D/g, "") })}
+                  onInput={(e) => e.currentTarget.setCustomValidity("")}
+                  onInvalid={(e) => e.currentTarget.setCustomValidity("Please enter a valid flat number")}
+                  className="min-h-12 w-full rounded-pill border border-ink/20 px-4 text-[15px] font-normal uppercase text-ink"
+                />
+              </label>
               <label className="grid gap-1.5 text-[12px] font-bold text-ink-muted min-[380px]:col-span-2">Mobile<input required value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className="min-h-12 w-full rounded-pill border border-ink/20 px-4 text-[15px] font-normal text-ink" placeholder="10-digit number" /></label>
             </div>
+            <p className="mt-2 text-[12.5px] leading-5 text-ink-soft">Allowed flats: 101-106, 201-206, ... 1101-1106.</p>
             <button type="submit" disabled={enrichedSlot.state === "full"} className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-pill bg-accent px-5 text-[16px] font-extrabold text-white hover:bg-accent-700 disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:text-ink-muted">
               Book this slot
             </button>
@@ -295,4 +321,9 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       </section>
     </div>
   );
+}
+
+function normalizeMobileForDisplay(mobile: string) {
+  const digits = mobile.replace(/\D/g, "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
 }

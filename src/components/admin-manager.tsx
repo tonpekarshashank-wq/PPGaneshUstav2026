@@ -309,6 +309,7 @@ function BookingsTable({ bookings, slots, onChange }: { bookings: AartiBooking[]
   if (bookings.length === 0) {
     return <p className="rounded-[18px] bg-surface p-4 text-sm font-semibold text-ink-muted">No aarti bookings found yet.</p>;
   }
+  const sortedBookings = [...bookings].sort((a, b) => adminBookingSlotTime(a, slots).localeCompare(adminBookingSlotTime(b, slots)));
 
   return (
     <div className="overflow-hidden rounded-[20px] bg-card shadow-soft">
@@ -320,7 +321,7 @@ function BookingsTable({ bookings, slots, onChange }: { bookings: AartiBooking[]
         <div>Status</div>
         <div className="text-right">Action</div>
       </div>
-      {bookings.map((booking) => {
+      {sortedBookings.map((booking) => {
         const slot = slots.find((item) => item.id === booking.slotId);
         return (
           <article key={booking.id} className="grid gap-3 border-t border-ink/10 p-4 text-sm text-ink min-[900px]:grid-cols-[1.1fr_1.25fr_.7fr_.9fr_.9fr_.7fr] min-[900px]:items-center">
@@ -333,7 +334,7 @@ function BookingsTable({ bookings, slots, onChange }: { bookings: AartiBooking[]
               <TextInput label="Wing" value={booking.wing} onChange={(value) => onChange(booking.id, { wing: value.toUpperCase() })} compact />
               <TextInput label="Flat" value={booking.flatNumber} onChange={(value) => onChange(booking.id, { flatNumber: value.toUpperCase() })} compact />
             </div>
-            <p className="text-ink-muted">Stored as hash</p>
+            <p className="text-ink-muted">{booking.mobileNumber ?? "Not captured"}</p>
             <SelectInput label="Status" value={booking.status} options={bookingStatusOptions} onChange={(value) => onChange(booking.id, { status: value as AartiBooking["status"] })} compact />
             <button type="button" onClick={() => onChange(booking.id, { status: booking.status === "cancelled" ? "confirmed" : "cancelled" })} className="text-left text-[12.5px] font-bold text-accent-700 min-[900px]:text-right">
               {booking.status === "cancelled" ? "Restore" : "Cancel"}
@@ -343,6 +344,10 @@ function BookingsTable({ bookings, slots, onChange }: { bookings: AartiBooking[]
       })}
     </div>
   );
+}
+
+function adminBookingSlotTime(booking: AartiBooking, slots: AartiSlot[]) {
+  return slots.find((slot) => slot.id === booking.slotId)?.startsAt ?? booking.createdAt;
 }
 
 function EventsTable({

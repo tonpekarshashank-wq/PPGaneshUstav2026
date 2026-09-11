@@ -70,6 +70,7 @@ export async function saveBookingToDatabase(item: AartiBooking) {
     set resident_name = ${item.residentName},
         wing = ${item.wing},
         flat_number = ${item.flatNumber},
+        mobile_number = ${item.mobileNumber ?? null},
         note = ${item.note ?? null},
         status = ${item.status},
         cancelled_at = ${item.cancelledAt ?? null}

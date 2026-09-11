@@ -15,6 +15,7 @@ function mapBooking(row: Record<string, unknown>): AartiBooking {
     wing: String(item.wing),
     flatNumber: String(item.flatNumber),
     mobileHash: String(item.mobileHash),
+    mobileNumber: item.mobileNumber ? String(item.mobileNumber) : undefined,
     participantCount: Number(item.participantCount),
     note: item.note ? String(item.note) : undefined,
     status: item.status as AartiBooking["status"],
@@ -45,6 +46,7 @@ export async function submitAartiBooking(input: BookingInput): Promise<{ booking
         ${input.wing},
         ${input.flatNumber},
         ${hashMobile(input.mobile)},
+        ${normalizeMobileForStorage(input.mobile)},
         ${input.note ?? ""},
         ${input.idempotencyKey}
       )
@@ -56,6 +58,11 @@ export async function submitAartiBooking(input: BookingInput): Promise<{ booking
     const message = error instanceof Error && error.message.includes("slot_already_booked") ? "This slot is already booked." : "Unable to book this slot.";
     return { error: message };
   }
+}
+
+function normalizeMobileForStorage(mobile: string) {
+  const digits = mobile.replace(/\D/g, "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
 }
 
 export async function cancelAartiBooking(reference: string, mobileHash: string): Promise<{ ok: boolean; error?: string }> {

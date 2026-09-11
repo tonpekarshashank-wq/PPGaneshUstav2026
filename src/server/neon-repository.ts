@@ -99,6 +99,7 @@ export async function getNeonAartiBookings(): Promise<AartiBooking[]> {
       wing: String(item.wing),
       flatNumber: String(item.flatNumber),
       mobileHash: String(item.mobileHash),
+      mobileNumber: item.mobileNumber ? String(item.mobileNumber) : undefined,
       participantCount: Number(item.participantCount),
       note: item.note ? String(item.note) : undefined,
       status: item.status as AartiBooking["status"],

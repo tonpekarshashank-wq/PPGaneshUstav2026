@@ -7,7 +7,7 @@ function escapeCell(value: unknown): string {
 
 export function bookingsToCsv(bookings: AartiBooking[], slots: AartiSlot[]): string {
   const rows = [
-    ["reference", "slot_date", "period", "resident_name", "wing", "flat_number", "participant_count", "status", "created_at"],
+    ["reference", "slot_date", "period", "resident_name", "wing", "flat_number", "mobile_number", "participant_count", "status", "created_at"],
     ...bookings.map((booking) => {
       const slot = slots.find((item) => item.id === booking.slotId);
       return [
@@ -17,6 +17,7 @@ export function bookingsToCsv(bookings: AartiBooking[], slots: AartiSlot[]): str
         booking.residentName,
         booking.wing,
         booking.flatNumber,
+        booking.mobileNumber ?? "",
         booking.participantCount,
         booking.status,
         booking.createdAt
