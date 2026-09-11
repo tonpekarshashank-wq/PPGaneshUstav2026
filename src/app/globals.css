@@ -3,8 +3,35 @@
 @tailwind utilities;
 
 :root {
+  /* ground & surfaces */
+  --color-bg: #f5ead8;
+  --color-surface: #ebddc5;
+  --color-card: #ffffff;
+  --color-ink: #201e1d;
+  --color-ink-muted: #5c534d;
+  --color-ink-soft: #8a7f75;
+
+  /* accents */
+  --color-accent: #c67139;
+  --color-accent-700: #7c3f1d;
+  --color-accent-100: #f0d9c1;
+  --color-accent2: #7a8a5e;
+  --color-accent2-100: #dfe4d2;
+  --color-neutral-300: #c9bda8;
+
+  /* radii */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* elevation */
+  --shadow-sm: 0 2px 8px rgba(60, 35, 15, 0.07);
+  --shadow-md: 0 3px 14px rgba(60, 35, 15, 0.10);
+  --shadow-lg: 0 8px 28px rgba(30, 14, 4, 0.22);
+
   color-scheme: light;
-  background: #fff8e6;
+  background: var(--color-bg);
 }
 
 html {
@@ -13,10 +40,30 @@ html {
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(217, 119, 6, 0.14), transparent 28rem),
-    linear-gradient(180deg, #fff8e6 0%, #fffaf0 45%, #ffffff 100%);
-  color: #3f0718;
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+[data-size="page"].font-devDisplay {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.14;
+  color: var(--color-ink);
+}
+
+[data-size="card"].font-devDisplay {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.22;
+  color: var(--color-ink);
+}
+
+[lang="mr"]:not(.font-devDisplay) {
+  font-family: var(--font-devanagari-body), sans-serif;
 }
 
 a:focus-visible,
@@ -24,8 +71,8 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #15803d;
-  outline-offset: 3px;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .safe-bottom {

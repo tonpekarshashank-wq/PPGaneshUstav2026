@@ -1,9 +1,12 @@
 .next
 node_modules
 coverage
+.DS_Store
 .env
 .env*.local
 !.env.example
 dist
 *.tsbuildinfo
 .neon
+UI mockups and design system brief/
+UI mockups and design system brief.zip

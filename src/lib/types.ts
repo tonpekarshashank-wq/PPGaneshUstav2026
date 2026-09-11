@@ -1,5 +1,3 @@
-export type Language = "en" | "mr";
-
 export type ContentStatus = "draft" | "published" | "archived";
 export type EventState = "scheduled" | "updated" | "cancelled" | "completed";
 export type AartiPeriod = "morning" | "evening";

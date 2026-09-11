@@ -5,6 +5,26 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        bg: "var(--color-bg)",
+        surface: "var(--color-surface)",
+        card: "var(--color-card)",
+        ink: {
+          DEFAULT: "var(--color-ink)",
+          muted: "var(--color-ink-muted)",
+          soft: "var(--color-ink-soft)"
+        },
+        accent: {
+          DEFAULT: "var(--color-accent)",
+          700: "var(--color-accent-700)",
+          100: "var(--color-accent-100)"
+        },
+        accent2: {
+          DEFAULT: "var(--color-accent2)",
+          100: "var(--color-accent2-100)"
+        },
+        neutral: {
+          300: "var(--color-neutral-300)"
+        },
         saffron: {
           50: "#fff8e6",
           100: "#ffecb5",
@@ -13,7 +33,7 @@ const config: Config = {
         },
         maroon: {
           50: "#fff1f2",
-          600: "#9f1239",
+          600: "var(--color-accent-700)",
           800: "#6b102a",
           950: "#3f0718"
         },
@@ -23,18 +43,31 @@ const config: Config = {
         }
       },
       fontFamily: {
+        latinDisplay: ["var(--font-latin-display)", "serif"],
+        devDisplay: ["var(--font-devanagari-display)", "sans-serif"],
+        latinBody: ["var(--font-latin-body)", "sans-serif"],
+        devBody: ["var(--font-devanagari-body)", "sans-serif"],
         sans: [
-          "Noto Sans Devanagari",
+          "var(--font-latin-body)",
+          "var(--font-devanagari-body)",
           "Nirmala UI",
           "Kohinoor Devanagari",
           "Mangal",
-          "Inter",
           "system-ui",
           "sans-serif"
         ]
       },
+      borderRadius: {
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        pill: "var(--radius-pill)"
+      },
       boxShadow: {
-        soft: "0 10px 30px rgba(63, 7, 24, 0.08)"
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+        soft: "var(--shadow-md)"
       }
     }
   },

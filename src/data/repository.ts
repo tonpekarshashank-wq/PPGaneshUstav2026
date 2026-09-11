@@ -8,7 +8,7 @@ import {
   settings,
   winners
 } from "@/data/seed";
-import type { AartiSlot, FestivalEvent } from "@/lib/types";
+import type { AartiSlot, Announcement, FestivalEvent } from "@/lib/types";
 import { istDateFromISO } from "@/lib/time";
 import { hasDatabaseUrl } from "@/server/db";
 import {
@@ -19,18 +19,26 @@ import {
   getNeonWinners
 } from "@/server/neon-repository";
 
+function publicAnnouncements(items: Announcement[]) {
+  const now = Date.now();
+  return items
+    .filter((announcement) => announcement.status === "published")
+    .filter((announcement) => new Date(announcement.startsAt).getTime() <= now && new Date(announcement.endsAt).getTime() >= now)
+    .sort((a, b) => Number(b.isPinned) - Number(a.isPinned) || new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+}
+
 export async function getPublicHomeData() {
   if (hasDatabaseUrl()) {
     const [dbAnnouncements, dbEvents] = await Promise.all([getNeonAnnouncements(), getNeonEvents()]);
     return {
-      announcements: dbAnnouncements.filter((announcement) => announcement.status === "published"),
+      announcements: publicAnnouncements(dbAnnouncements),
       events: dbEvents.filter((event) => event.status === "published"),
       opportunities: opportunities.filter((opportunity) => opportunity.status === "published" && opportunity.featured),
       settings
     };
   }
   return {
-    announcements: announcements.filter((announcement) => announcement.status === "published"),
+    announcements: publicAnnouncements(announcements),
     events: events.filter((event) => event.status === "published"),
     opportunities: opportunities.filter((opportunity) => opportunity.status === "published" && opportunity.featured),
     settings
@@ -61,13 +69,16 @@ export async function getAartiData(): Promise<{ slots: AartiSlot[]; settings: ty
 
 export async function getWinnersData() {
   if (hasDatabaseUrl()) {
+    const dbEvents = await getNeonEvents();
     return {
       activities,
+      events: dbEvents.filter((event) => event.status === "published"),
       winners: (await getNeonWinners()).filter((winner) => winner.status === "published" && winner.consentToPublish)
     };
   }
   return {
     activities,
+    events: events.filter((event) => event.status === "published"),
     winners: winners.filter((winner) => winner.status === "published" && winner.consentToPublish)
   };
 }

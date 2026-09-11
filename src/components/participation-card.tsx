@@ -1,4 +1,5 @@
 import { MessageCircle, Phone, ExternalLink, Info } from "lucide-react";
+import { BiTitle } from "@/components/BiTitle";
 import type { ParticipationOpportunity } from "@/lib/types";
 import { formatDateIST, isBeforeCutoff } from "@/lib/time";
 
@@ -15,10 +16,7 @@ export function ParticipationCard({ opportunity }: { opportunity: ParticipationO
   return (
     <article className="rounded-lg border border-maroon-800/10 bg-white p-4 shadow-soft">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-extrabold text-maroon-950">{opportunity.titleEn}</h3>
-          <p className="text-base font-semibold text-maroon-800">{opportunity.titleMr}</p>
-        </div>
+        <BiTitle en={opportunity.titleEn} mr={opportunity.titleMr} />
         <span className="rounded-full bg-saffron-100 px-2 py-1 text-xs font-bold text-maroon-800">Featured</span>
       </div>
       <p className="mt-3 text-sm leading-6 text-zinc-700">{opportunity.descriptionEn}</p>
@@ -26,29 +24,29 @@ export function ParticipationCard({ opportunity }: { opportunity: ParticipationO
       <dl className="mt-4 grid gap-2 text-sm text-zinc-700">
         {opportunity.deadlineAt ? (
           <div>
-            <dt className="font-bold text-maroon-800">Deadline / अंतिम तारीख</dt>
+            <dt className="font-bold text-maroon-800">Deadline</dt>
             <dd>{formatDateIST(opportunity.deadlineAt)}</dd>
           </div>
         ) : null}
         {opportunity.feeTextEn ? (
           <div>
-            <dt className="font-bold text-maroon-800">Fees / शुल्क</dt>
+            <dt className="font-bold text-maroon-800">Fees</dt>
             <dd>{opportunity.feeTextEn}</dd>
           </div>
         ) : null}
         {opportunity.inclusionsEn ? (
           <div>
-            <dt className="font-bold text-maroon-800">Included / समाविष्ट</dt>
+            <dt className="font-bold text-maroon-800">Included</dt>
             <dd>{opportunity.inclusionsEn}</dd>
           </div>
         ) : null}
       </dl>
       {closed ? (
-        <p className="mt-4 rounded-lg bg-zinc-100 px-3 py-2 text-sm font-bold text-zinc-700">Registrations closed / नोंदणी बंद</p>
+        <p className="mt-4 rounded-lg bg-zinc-100 px-3 py-2 text-sm font-bold text-zinc-700">Registrations closed</p>
       ) : actionHref ? (
         <a href={actionHref} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-maroon-600 px-4 text-sm font-bold text-white hover:bg-maroon-800">
           <Icon size={18} aria-hidden="true" />
-          Book your stall / तुमचा स्टॉल बुक करा
+          Book your stall
         </a>
       ) : (
         <p className="mt-4 text-sm font-semibold text-maroon-800">Contact the committee for details.</p>

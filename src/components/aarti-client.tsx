@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Search, XCircle } from "lucide-react";
-import { cancelAartiBooking, submitAartiBooking } from "@/app/aarti/actions";
-import { StatusBadge } from "@/components/status-badge";
+import { submitAartiBooking } from "@/app/aarti/actions";
+import { BiTitle } from "@/components/BiTitle";
 import { adminStorageKeys, readStorageList, writeStorageList } from "@/lib/local-storage";
 import type { AartiBooking, AartiSlot, BookingInput, FestivalSettings } from "@/lib/types";
 import { bookingReference, canCreateBooking, hashMobile, normalizeFlat } from "@/lib/booking";
@@ -16,21 +15,83 @@ type Props = {
   databaseEnabled: boolean;
 };
 
+function dayParts(date: string) {
+  const value = new Date(`${date}T00:00:00+05:30`);
+  return {
+    weekday: new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short" }).format(value),
+    day: new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "numeric" }).format(value),
+    month: new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", month: "short" }).format(value)
+  };
+}
+
+function periodText(period: AartiSlot["period"]) {
+  return period === "morning" ? "Morning" : "Evening";
+}
+
+function bookingFlat(booking: AartiBooking) {
+  return `${booking.wing.toUpperCase()}-${booking.flatNumber.toUpperCase()}`;
+}
+
+function officialAartiSlots(existingSlots: AartiSlot[]): AartiSlot[] {
+  const byId = new Map(existingSlots.map((slot) => [slot.id, slot]));
+  const slots: AartiSlot[] = [];
+
+  for (let day = 15; day <= 25; day += 1) {
+    const date = `2026-09-${String(day).padStart(2, "0")}`;
+    const periods = day === 25 ? (["morning"] as const) : (["morning", "evening"] as const);
+    for (const period of periods) {
+      const id = `aarti-${date}-${period}`;
+      const time = period === "morning" ? "08:00" : "20:00";
+      const reportingTime = period === "morning" ? "07:45" : "19:45";
+      const closeTime = period === "morning" ? "02:00" : "14:00";
+      const existing = byId.get(id);
+      slots.push(existing ? { ...existing, eventDate: date } : {
+        id,
+        eventDate: date,
+        period,
+        labelEn: period === "morning" ? "Morning Aarti" : "Evening Aarti",
+        labelMr: period === "morning" ? "सकाळची आरती" : "संध्याकाळची आरती",
+        startsAt: `${date}T${time}:00+05:30`,
+        reportingAt: `${date}T${reportingTime}:00+05:30`,
+        capacity: 1,
+        confirmedCount: 0,
+        waitlistedCount: 0,
+        bookingOpensAt: "2026-09-01T08:00:00+05:30",
+        bookingClosesAt: `${date}T${closeTime}:00+05:30`,
+        waitlistEnabled: false,
+        state: "open"
+      });
+    }
+  }
+
+  return slots;
+}
+
 export function AartiClient({ slots, bookings: initialBookings, settings, databaseEnabled }: Props) {
-  const validDates = festivalDates.filter((date) => date !== "2026-09-14");
-  const [selectedDate, setSelectedDate] = useState(validDates[0]);
-  const [selectedSlotId, setSelectedSlotId] = useState(slots.find((slot) => slot.eventDate === validDates[0])?.id ?? "");
+  const displaySlots = useMemo(() => officialAartiSlots(slots), [slots]);
+  const firstValidDate = festivalDates.find((date) => displaySlots.some((slot) => slot.eventDate === date)) ?? festivalDates[0];
+  const [selectedDate, setSelectedDate] = useState(firstValidDate);
+  const [selectedSlotId, setSelectedSlotId] = useState(displaySlots.find((slot) => slot.eventDate === firstValidDate)?.id ?? "");
   const [bookings, setBookings] = useState<AartiBooking[]>(initialBookings);
   const [message, setMessage] = useState<string | null>(null);
-  const [lookup, setLookup] = useState({ mobile: "", wing: "", flatNumber: "" });
   const [form, setForm] = useState({
     residentName: "",
-    wing: "",
+    wing: "E",
     flatNumber: "",
     mobile: "",
-    note: "",
-    consent: false
+    note: ""
   });
+
+  useEffect(() => {
+    if (!displaySlots.some((slot) => slot.eventDate === selectedDate)) {
+      setSelectedDate(firstValidDate);
+      setSelectedSlotId(displaySlots.find((slot) => slot.eventDate === firstValidDate)?.id ?? "");
+      return;
+    }
+    if (!displaySlots.some((slot) => slot.id === selectedSlotId && slot.eventDate === selectedDate)) {
+      setSelectedSlotId(displaySlots.find((slot) => slot.eventDate === selectedDate)?.id ?? "");
+    }
+  }, [displaySlots, firstValidDate, selectedDate, selectedSlotId]);
 
   useEffect(() => {
     if (databaseEnabled) {
@@ -58,8 +119,9 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
     }
   }
 
-  const dateSlots = slots.filter((slot) => slot.eventDate === selectedDate);
-  const selectedSlot = slots.find((slot) => slot.id === selectedSlotId) ?? dateSlots[0];
+  const dateSlots = displaySlots.filter((slot) => slot.eventDate === selectedDate);
+  const selectedSlot = displaySlots.find((slot) => slot.id === selectedSlotId) ?? dateSlots[0];
+  const selectedDateParts = dayParts(selectedDate);
   const enrichedSlot = useMemo(() => {
     if (!selectedSlot) return undefined;
     const confirmedCount = bookings.filter((booking) => booking.slotId === selectedSlot.id && booking.status === "confirmed").length;
@@ -79,6 +141,8 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       ...form,
       slotId: enrichedSlot.id,
       participantCount: 1,
+      note: "",
+      consent: true,
       idempotencyKey: `${normalizeFlat(form.wing, form.flatNumber)}-${hashMobile(form.mobile)}-${enrichedSlot.id}`
     };
     const singleBookingSlot = { ...enrichedSlot, capacity: 1, waitlistEnabled: false };
@@ -103,7 +167,6 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       return;
     }
 
-    const waitlistPosition = result.status === "waitlisted" ? bookings.filter((booking) => booking.slotId === enrichedSlot.id && booking.status === "waitlisted").length + 1 : undefined;
     const booking: AartiBooking = {
       id: crypto.randomUUID(),
       reference: bookingReference(enrichedSlot.id, flatKey, input.idempotencyKey),
@@ -113,9 +176,9 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       flatNumber: input.flatNumber.trim().toUpperCase(),
       mobileHash: hashMobile(input.mobile),
       participantCount: input.participantCount,
-      note: input.note,
+      note: "",
       status: result.status,
-      waitlistPosition,
+      waitlistPosition: undefined,
       verifiedAt: new Date().toISOString(),
       createdAt: new Date().toISOString()
     };
@@ -123,133 +186,112 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
     setMessage(`Slot booked: ${booking.reference}`);
   }
 
-  const ownBooking = bookings.find(
-    (booking) =>
-      booking.mobileHash === hashMobile(lookup.mobile) &&
-      normalizeFlat(booking.wing, booking.flatNumber) === normalizeFlat(lookup.wing, lookup.flatNumber) &&
-      booking.status !== "cancelled"
-  );
   const bookedSlots = bookings.filter((booking) => booking.status === "confirmed");
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="space-y-4 rounded-lg border border-maroon-800/10 bg-white p-4 shadow-soft">
-        <h2 className="text-xl font-black text-maroon-950">Choose a slot / स्लॉट निवडा</h2>
-        <label className="grid gap-1 text-sm font-bold text-maroon-800">
-          Date / तारीख
-          <select
-            value={selectedDate}
-            onChange={(event) => {
-              const nextDate = event.target.value;
-              setSelectedDate(nextDate);
-              setSelectedSlotId(slots.find((slot) => slot.eventDate === nextDate)?.id ?? "");
-            }}
-            className="min-h-11 rounded-lg border border-maroon-800/20 px-3 text-base text-zinc-900"
-          >
-            {validDates.map((date) => (
-              <option key={date} value={date}>
-                {formatDateIST(date)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="grid gap-2">
+    <div className="space-y-5 lg:grid lg:grid-cols-[0.95fr_1.05fr] lg:gap-5 lg:space-y-0">
+      <section className="rounded-[26px] bg-card p-4 shadow-soft lg:p-5">
+        <div className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Step 1 · Date</div>
+        <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-2">
+          {festivalDates.map((date) => {
+            const parts = dayParts(date);
+            const hasSlots = displaySlots.some((slot) => slot.eventDate === date);
+            const active = selectedDate === date;
+            return (
+              <button
+                key={date}
+                type="button"
+                disabled={!hasSlots}
+                onClick={() => {
+                  const nextSlot = displaySlots.find((slot) => slot.eventDate === date);
+                  setSelectedDate(date);
+                  setSelectedSlotId(nextSlot?.id ?? "");
+                }}
+                className={`${active ? "bg-accent text-white" : "bg-surface text-ink"} ${hasSlots ? "" : "opacity-45"} flex h-[72px] w-[52px] shrink-0 flex-col items-center justify-center rounded-[16px] text-center transition-colors`}
+                aria-label={`${formatDateIST(date)}${hasSlots ? "" : ", no aarti booking"}`}
+              >
+                <span className={`text-[10px] font-bold uppercase ${active ? "text-white/85" : "text-ink-soft"}`}>{parts.weekday}</span>
+                <span className="font-latinDisplay text-[20px] leading-none">{parts.day}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 text-[11.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Step 2 · Slot</div>
+        <div className="mt-3 grid gap-3">
           {dateSlots.map((slot) => {
             const isBooked = bookings.some((booking) => booking.slotId === slot.id && booking.status === "confirmed");
+            const active = selectedSlotId === slot.id;
             return (
               <button
                 key={slot.id}
                 type="button"
                 onClick={() => setSelectedSlotId(slot.id)}
                 disabled={isBooked}
-                className={`min-h-16 rounded-lg border px-4 text-left disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500 ${selectedSlotId === slot.id ? "border-maroon-600 bg-maroon-50" : "border-maroon-800/15 bg-white"}`}
+                className={`${active && !isBooked ? "border-2 border-accent2 bg-card" : isBooked ? "border border-transparent bg-surface" : "border border-ink/10 bg-card"} rounded-[20px] p-4 text-left shadow-soft transition-colors disabled:cursor-not-allowed`}
               >
-                <span className="block font-extrabold text-maroon-950">{slot.labelEn} / {slot.labelMr}</span>
-                <span className="block text-sm text-zinc-700">{formatTimeIST(slot.startsAt)} · {isBooked ? "Booked / बुक झाले" : "Open / उपलब्ध"}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <BiTitle en={slot.labelEn} mr={slot.labelMr} />
+                  <span className={`${isBooked ? "bg-neutral-300 text-ink" : "bg-accent2 text-white"} shrink-0 rounded-pill px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em]`}>
+                    {isBooked ? "Booked" : "Open"}
+                  </span>
+                </div>
+                <div className="mt-4 flex items-baseline gap-3 border-t border-ink/10 pt-4">
+                  <span className={`${isBooked ? "text-ink-soft" : "text-accent"} font-latinDisplay text-[24px] leading-none`}>{formatTimeIST(slot.startsAt).toLowerCase()}</span>
+                  <span className={`${isBooked ? "text-ink-soft" : "text-ink-muted"} text-[13px] leading-5`}>
+                    {isBooked ? bookedSlots.find((booking) => booking.slotId === slot.id)?.flatNumber ? bookingFlat(bookedSlots.find((booking) => booking.slotId === slot.id) as AartiBooking) : "Already booked" : `report by ${formatTimeIST(slot.reportingAt).toLowerCase()}`}
+                  </span>
+                </div>
               </button>
             );
           })}
         </div>
-        {enrichedSlot ? (
-          <div className="rounded-lg bg-saffron-50 p-3 text-sm text-maroon-900">
-            <StatusBadge value={enrichedSlot.state === "full" ? "full" : "open"} />
-            <p className="mt-2 font-semibold">Reporting time: {formatTimeIST(enrichedSlot.reportingAt)}. Cancellation cutoff: {formatTimeIST(enrichedSlot.bookingClosesAt)}.</p>
-            <p className="mt-1">Once a slot is booked, it is blocked for other residents. 25 September has morning only because Maha Aarti is at 4:30 PM.</p>
-          </div>
-        ) : null}
-      </section>
+        <p className="mt-4 text-[13px] leading-6 text-ink-muted">25 September has a morning slot only because Maha Aarti is at 4:30 pm. Cancellations close at 2:00 am on the day.</p>
 
-      <section className="space-y-5">
-        <form onSubmit={submitBooking} className="grid gap-3 rounded-lg border border-maroon-800/10 bg-white p-4 shadow-soft">
-          <h2 className="text-xl font-black text-maroon-950">Book Aarti Slot / आरती स्लॉट बुक करा</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-1 text-sm font-bold text-maroon-800">Full name<input required value={form.residentName} onChange={(e) => setForm({ ...form, residentName: e.target.value })} className="min-h-11 rounded-lg border px-3 text-base text-zinc-900" /></label>
-            <label className="grid gap-1 text-sm font-bold text-maroon-800">Mobile<input required value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className="min-h-11 rounded-lg border px-3 text-base text-zinc-900" placeholder="+91..." /></label>
-            <label className="grid gap-1 text-sm font-bold text-maroon-800">Wing<input required value={form.wing} onChange={(e) => setForm({ ...form, wing: e.target.value })} className="min-h-11 rounded-lg border px-3 text-base text-zinc-900" /></label>
-            <label className="grid gap-1 text-sm font-bold text-maroon-800">Flat number<input required value={form.flatNumber} onChange={(e) => setForm({ ...form, flatNumber: e.target.value })} className="min-h-11 rounded-lg border px-3 text-base text-zinc-900" /></label>
-          </div>
-          <label className="grid gap-1 text-sm font-bold text-maroon-800">Note to committee<textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className="min-h-24 rounded-lg border px-3 py-2 text-base text-zinc-900" /></label>
-          <label className="flex gap-3 text-sm font-semibold text-zinc-700">
-            <input required type="checkbox" checked={form.consent} onChange={(e) => setForm({ ...form, consent: e.target.checked })} className="mt-1 h-5 w-5" />
-            I agree that the committee may use this information only for aarti coordination. Demo verification is abstracted; production must connect OTP/admin verification.
-          </label>
-          <button type="submit" disabled={enrichedSlot?.state === "full"} className="inline-flex min-h-12 items-center justify-center rounded-full bg-maroon-600 px-5 font-extrabold text-white hover:bg-maroon-800 disabled:cursor-not-allowed disabled:bg-zinc-400">Book slot</button>
-          {message ? <p role="status" className="rounded-lg bg-saffron-50 px-3 py-2 text-sm font-bold text-maroon-800">{message}</p> : null}
-        </form>
-
-        <section className="rounded-lg border border-maroon-800/10 bg-white p-4 shadow-soft">
-          <h2 className="text-xl font-black text-maroon-950">Booked slots / बुक झालेले स्लॉट</h2>
+        <section className="mt-6">
+          <h2 className="font-latinDisplay text-[21px] leading-tight text-ink">Booked slots</h2>
           {bookedSlots.length > 0 ? (
             <ul className="mt-3 grid gap-2">
               {bookedSlots.map((booking) => {
-                const slot = slots.find((item) => item.id === booking.slotId);
+                const slot = displaySlots.find((item) => item.id === booking.slotId);
                 if (!slot) return null;
                 return (
-                  <li key={booking.id} className="rounded-lg bg-saffron-50 p-3 text-sm text-maroon-900">
-                    <span className="block font-bold">{formatDateIST(slot.eventDate)} · {slot.labelEn} / {slot.labelMr}</span>
-                    <span className="block text-zinc-700">{formatTimeIST(slot.startsAt)} · Booked · Ref {booking.reference}</span>
+                  <li key={booking.id} className="rounded-[18px] bg-surface p-3 text-[13px] leading-5 text-ink-muted">
+                    <span className="block font-bold text-ink">{formatDateIST(slot.eventDate)} · {periodText(slot.period)} · {formatTimeIST(slot.startsAt).toLowerCase()}</span>
+                    <span className="block">{bookingFlat(booking)} · {booking.residentName}</span>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="mt-3 rounded-lg bg-zinc-100 p-3 text-sm font-semibold text-zinc-700">No slots booked yet.</p>
+            <p className="mt-3 rounded-[18px] bg-surface p-3 text-[13px] font-semibold text-ink-muted">No slots booked yet.</p>
           )}
         </section>
+      </section>
 
-        <section className="rounded-lg border border-maroon-800/10 bg-white p-4 shadow-soft">
-          <h2 className="flex items-center gap-2 text-xl font-black text-maroon-950"><Search size={20} /> Find my booking / माझी नोंदणी शोधा</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <input aria-label="Lookup mobile" value={lookup.mobile} onChange={(e) => setLookup({ ...lookup, mobile: e.target.value })} className="min-h-11 rounded-lg border px-3 text-base" placeholder="Mobile" />
-            <input aria-label="Lookup wing" value={lookup.wing} onChange={(e) => setLookup({ ...lookup, wing: e.target.value })} className="min-h-11 rounded-lg border px-3 text-base" placeholder="Wing" />
-            <input aria-label="Lookup flat" value={lookup.flatNumber} onChange={(e) => setLookup({ ...lookup, flatNumber: e.target.value })} className="min-h-11 rounded-lg border px-3 text-base" placeholder="Flat" />
-          </div>
-          {lookup.mobile && lookup.wing && lookup.flatNumber ? (
-            ownBooking ? (
-              <div className="mt-4 rounded-lg bg-leaf-50 p-3 text-sm text-leaf-700">
-                <p className="flex items-center gap-2 font-bold"><CheckCircle2 size={18} /> {ownBooking.reference} · {ownBooking.status}</p>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (databaseEnabled) {
-                      const result = await cancelAartiBooking(ownBooking.reference, ownBooking.mobileHash);
-                      if (!result.ok) {
-                        setMessage(result.error ?? "Unable to cancel booking.");
-                        return;
-                      }
-                    }
-                    saveBookings(bookings.map((booking) => booking.id === ownBooking.id ? { ...booking, status: "cancelled", cancelledAt: new Date().toISOString() } : booking));
-                  }}
-                  className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-full bg-maroon-600 px-4 font-bold text-white"
-                >
-                  <XCircle size={16} /> Cancel booking
-                </button>
-              </div>
-            ) : (
-              <p className="mt-4 rounded-lg bg-zinc-100 p-3 text-sm font-semibold text-zinc-700">No active booking found for these details.</p>
-            )
-          ) : null}
-        </section>
+      <section className="space-y-5">
+        {enrichedSlot ? (
+          <form onSubmit={submitBooking} className="rounded-t-[26px] bg-card px-5 pb-5 pt-4 shadow-[0_-8px_26px_rgba(60,35,15,.14)] lg:rounded-[26px] lg:shadow-soft">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-pill bg-ink/20" aria-hidden="true" />
+            <h2 className="font-latinDisplay text-[21px] leading-tight text-ink">Confirm your booking</h2>
+            <p className="mt-1 text-[13px] font-semibold leading-5 text-ink-soft">
+              {selectedDateParts.weekday} {selectedDateParts.day} {selectedDateParts.month} · {enrichedSlot.labelEn} · {formatTimeIST(enrichedSlot.startsAt).toLowerCase()}
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
+              <label className="grid gap-1.5 text-[12px] font-bold text-ink-muted min-[380px]:col-span-2">Full name<input required value={form.residentName} onChange={(e) => setForm({ ...form, residentName: e.target.value })} className="min-h-12 w-full rounded-pill border border-ink/20 px-4 text-[15px] font-normal text-ink" /></label>
+              <label className="grid min-w-0 gap-1.5 text-[12px] font-bold text-ink-muted">Wing<select required value={form.wing} onChange={(e) => setForm({ ...form, wing: e.target.value })} className="min-h-12 w-full rounded-pill border border-ink/20 bg-card px-4 text-[15px] font-normal text-ink">
+                {["E", "F", "G", "H"].map((wing) => <option key={wing} value={wing}>{wing}</option>)}
+              </select></label>
+              <label className="grid min-w-0 gap-1.5 text-[12px] font-bold text-ink-muted">Flat<input required value={form.flatNumber} onChange={(e) => setForm({ ...form, flatNumber: e.target.value })} className="min-h-12 w-full rounded-pill border border-ink/20 px-4 text-[15px] font-normal uppercase text-ink" /></label>
+              <label className="grid gap-1.5 text-[12px] font-bold text-ink-muted min-[380px]:col-span-2">Mobile<input required value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className="min-h-12 w-full rounded-pill border border-ink/20 px-4 text-[15px] font-normal text-ink" placeholder="10-digit number" /></label>
+            </div>
+            <button type="submit" disabled={enrichedSlot.state === "full"} className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-pill bg-accent px-5 text-[16px] font-extrabold text-white hover:bg-accent-700 disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:text-ink-muted">
+              Book this slot
+            </button>
+            {message ? <p role="status" className="mt-3 rounded-[16px] bg-accent-100 px-3 py-2 text-sm font-bold text-accent-700">{message}</p> : null}
+          </form>
+        ) : null}
+
       </section>
     </div>
   );

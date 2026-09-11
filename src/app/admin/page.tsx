@@ -1,4 +1,4 @@
-import { LockKeyhole, Settings } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { logoutAdmin } from "@/app/admin/actions";
 import { AdminManager } from "@/components/admin-manager";
 import { getAdminDashboardData } from "@/data/repository";
@@ -7,51 +7,51 @@ import { requireAdminSession } from "@/server/admin-auth";
 export default async function AdminPage() {
   await requireAdminSession();
   const data = await getAdminDashboardData();
-  const fillRate = data.slots.length === 0 ? 0 : Math.round((data.slots.reduce((sum, slot) => sum + slot.confirmedCount, 0) / data.slots.reduce((sum, slot) => sum + slot.capacity, 0)) * 100);
+  const bookedSlots = data.bookings.filter((booking) => booking.status === "confirmed").length;
+  const totalSlots = data.slots.length;
+  const eventsToProofread = data.events.filter((event) => event.sampleContent || event.status === "draft").length;
+  const resultsPending = data.activities.filter((activity) => !data.winners.some((winner) => winner.activityId === activity.id && winner.status === "published")).length;
+  const nextBooking = data.bookings
+    .filter((booking) => booking.status === "confirmed")
+    .map((booking) => ({ booking, slot: data.slots.find((slot) => slot.id === booking.slotId) }))
+    .filter((item): item is { booking: typeof data.bookings[number]; slot: typeof data.slots[number] } => Boolean(item.slot))
+    .sort((a, b) => a.slot.startsAt.localeCompare(b.slot.startsAt))[0];
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg bg-maroon-800 p-5 text-white shadow-soft">
-        <div className="flex items-center gap-2">
-          <LockKeyhole aria-hidden="true" />
-          <h1 className="text-3xl font-black">Committee Admin</h1>
+      <div className="-mx-4 -mt-5 bg-ink px-4 py-4 text-bg shadow-md lg:mx-0 lg:-mt-8 lg:rounded-lg lg:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent font-devDisplay text-sm font-bold text-white" lang="mr">श्री</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <LockKeyhole size={18} aria-hidden="true" />
+                <h1 className="text-[15px] font-bold leading-tight">Committee console</h1>
+              </div>
+              <p className="mt-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-bg/55">Ganeshotsav 2026</p>
+            </div>
+          </div>
+          <form action={logoutAdmin}>
+            <button type="submit" className="inline-flex min-h-10 items-center rounded-pill border border-bg/30 px-4 text-sm font-bold text-bg hover:bg-bg/10">
+              Sign out
+            </button>
+          </form>
         </div>
-        <p className="mt-3 max-w-3xl text-white/90">Residents can view details and book aarti slots with only the public link. This area is gated by one configured admin account for managing the application.</p>
-        <form action={logoutAdmin} className="mt-4">
-          <button type="submit" className="inline-flex min-h-10 items-center rounded-full border border-white/40 px-4 text-sm font-bold text-white hover:bg-white/10">
-            Sign out
-          </button>
-        </form>
       </div>
 
       <section className="grid gap-3 md:grid-cols-4">
         {[
-          ["Today's events", data.todayEvents.length],
-          ["Active announcements", data.announcements.filter((item) => item.status === "published").length],
-          ["Aarti fill rate", `${fillRate}%`],
-          ["Unpublished results", data.winners.filter((item) => item.status !== "published").length]
-        ].map(([label, value]) => (
-          <article key={label} className="rounded-lg border border-maroon-800/10 bg-white p-4 shadow-soft">
-            <p className="text-sm font-bold text-maroon-800">{label}</p>
-            <p className="mt-2 text-3xl font-black text-maroon-950">{value}</p>
+          ["Aarti slots booked", `${bookedSlots} / ${totalSlots}`, "card"],
+          ["Events to proofread", eventsToProofread, "card"],
+          ["Results pending", resultsPending, "card"],
+          ["Next aarti", nextBooking ? formatAdminSlot(nextBooking.slot.startsAt) : "None", "sage"]
+        ].map(([label, value, tone]) => (
+          <article key={label} className={`${tone === "sage" ? "bg-accent2 text-white" : "bg-card text-ink"} rounded-[18px] p-4 shadow-soft`}>
+            <p className={`${tone === "sage" ? "text-bg/75" : "text-ink-soft"} text-[10.5px] font-bold uppercase tracking-[0.12em]`}>{label}</p>
+            <p className="mt-2 font-latinDisplay text-[30px] leading-tight">{value}</p>
+            {tone === "sage" && nextBooking ? <p className="mt-1 text-[12px] font-semibold text-bg/85">{nextBooking.booking.wing}-{nextBooking.booking.flatNumber} · {nextBooking.booking.residentName}</p> : null}
           </article>
         ))}
-      </section>
-
-      <section className="rounded-lg border border-maroon-800/10 bg-white p-4 shadow-soft">
-        <div className="flex items-center gap-2">
-          <Settings className="text-maroon-800" aria-hidden="true" />
-          <h2 className="text-xl font-black text-maroon-950">Settings, audit, and exports</h2>
-        </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg bg-saffron-50 p-3 text-sm text-maroon-900">
-            <p><strong>Timezone:</strong> {data.settings.timezone}</p>
-            <p><strong>Duplicate policy:</strong> {data.settings.duplicatePolicy}</p>
-            <p><strong>Default capacity:</strong> {data.settings.defaultCapacity}</p>
-            <p><strong>Cancellation cutoff:</strong> {data.settings.cancellationCutoffHours} hours</p>
-          </div>
-          <p className="text-sm leading-6 text-zinc-700">Edits below are saved locally in this browser for the MVP. Production should replace this with Supabase-backed persistence and audit logging.</p>
-        </div>
       </section>
 
       <AdminManager
@@ -65,4 +65,13 @@ export default async function AdminPage() {
       />
     </div>
   );
+}
+
+function formatAdminSlot(iso: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(iso));
 }

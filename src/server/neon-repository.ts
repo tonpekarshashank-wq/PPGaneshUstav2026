@@ -57,6 +57,7 @@ export async function getNeonAartiSlots(): Promise<AartiSlot[]> {
   const sql = getSql();
   const rows = await sql`
     select s.*,
+      to_char(s.event_date, 'YYYY-MM-DD') as event_date_text,
       coalesce(count(b.id) filter (where b.status = 'confirmed'), 0)::int as confirmed_count,
       coalesce(count(b.id) filter (where b.status = 'waitlisted'), 0)::int as waitlisted_count
     from aarti_slots s
@@ -68,7 +69,7 @@ export async function getNeonAartiSlots(): Promise<AartiSlot[]> {
     const item = rowToCamel(row) as Record<string, unknown>;
     return {
       id: String(item.id),
-      eventDate: iso(item.eventDate).slice(0, 10),
+      eventDate: String(item.eventDateText),
       period: item.period as AartiSlot["period"],
       labelEn: String(item.labelEn),
       labelMr: String(item.labelMr),
