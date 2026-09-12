@@ -5,10 +5,12 @@ import {
   events,
   activities,
   opportunities,
+  registrationEntries,
+  registrationEvents,
   settings,
   winners
 } from "@/data/seed";
-import type { AartiSlot, Announcement, FestivalEvent } from "@/lib/types";
+import type { AartiSlot, Announcement, FestivalEvent, RegistrationEntryPublic } from "@/lib/types";
 import { istDateFromISO } from "@/lib/time";
 import { hasDatabaseUrl } from "@/server/db";
 import {
@@ -16,6 +18,9 @@ import {
   getNeonAartiSlots,
   getNeonAnnouncements,
   getNeonEvents,
+  getNeonRegistrationEntriesAdmin,
+  getNeonRegistrationEntriesPublic,
+  getNeonRegistrationEvents,
   getNeonWinners
 } from "@/server/neon-repository";
 
@@ -83,14 +88,38 @@ export async function getWinnersData() {
   };
 }
 
+function publicRegistrationEntries(items: RegistrationEntryPublic[]) {
+  return items
+    .filter((entry) => entry.status === "confirmed")
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.participantName.localeCompare(b.participantName));
+}
+
+export async function getRegistrationsData() {
+  if (hasDatabaseUrl()) {
+    const [dbRegistrationEvents, dbEntries] = await Promise.all([getNeonRegistrationEvents(), getNeonRegistrationEntriesPublic()]);
+    return {
+      registrationEvents: dbRegistrationEvents.filter((event) => event.status === "open" || event.status === "closed"),
+      entries: dbEntries,
+      databaseEnabled: true
+    };
+  }
+  return {
+    registrationEvents: registrationEvents.filter((event) => event.status === "open" || event.status === "closed"),
+    entries: publicRegistrationEntries(registrationEntries),
+    databaseEnabled: false
+  };
+}
+
 export async function getAdminDashboardData() {
   if (hasDatabaseUrl()) {
-    const [dbAnnouncements, dbEvents, dbSlots, dbBookings, dbWinners] = await Promise.all([
+    const [dbAnnouncements, dbEvents, dbSlots, dbBookings, dbWinners, dbRegistrationEvents, dbRegistrationEntries] = await Promise.all([
       getNeonAnnouncements(),
       getNeonEvents(),
       getNeonAartiSlots(),
       getNeonAartiBookings(),
-      getNeonWinners()
+      getNeonWinners(),
+      getNeonRegistrationEvents(),
+      getNeonRegistrationEntriesAdmin()
     ]);
     return {
       announcements: dbAnnouncements,
@@ -99,6 +128,8 @@ export async function getAdminDashboardData() {
       bookings: dbBookings,
       activities,
       winners: dbWinners,
+      registrationEvents: dbRegistrationEvents,
+      registrationEntries: dbRegistrationEntries,
       opportunities,
       settings,
       databaseEnabled: true,
@@ -112,6 +143,8 @@ export async function getAdminDashboardData() {
     bookings,
     activities,
     winners,
+    registrationEvents,
+    registrationEntries,
     opportunities,
     settings,
     databaseEnabled: false,

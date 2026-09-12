@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, Eye, LockKeyhole } from "lucide-react";
+import { Download, Eye, LockKeyhole, Trophy } from "lucide-react";
 
 const items = [
   {
@@ -15,6 +15,12 @@ const items = [
     helper: "Save the schedule image to your device.",
     icon: Download,
     download: true
+  },
+  {
+    href: "/winners",
+    label: "Winners",
+    helper: "See published results after committee confirmation.",
+    icon: Trophy
   },
   {
     href: "/admin/login",

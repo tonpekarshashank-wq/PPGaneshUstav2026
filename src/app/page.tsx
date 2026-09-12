@@ -59,7 +59,7 @@ function HappeningCard({ event, featured = false }: { event: FestivalEvent; feat
   const parts = dateParts(event);
   return (
     <Link
-      href={`/event/${event.slug}`}
+      href={`/schedule?event=${event.id}`}
       className={`grid min-h-28 grid-cols-[72px_1fr] overflow-hidden rounded-md shadow-sm ${
         featured ? "bg-card" : "bg-surface"
       }`}
@@ -190,7 +190,7 @@ export default async function HomePage() {
             </a>
             <div className="p-5 md:p-6">
               <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Committee pamphlet</p>
-              <h2 id="pamphlet-heading" className="mt-3 font-latinDisplay text-3xl text-ink">Schedule pamphlet</h2>
+              <h2 id="pamphlet-heading" className="mt-3 font-latinDisplay text-3xl text-ink">Event Schedule</h2>
               <p className="mt-3 text-[15.5px] leading-7 text-ink-muted">
                 The official printed schedule shared by the committee. View it full-size or download for WhatsApp.
               </p>

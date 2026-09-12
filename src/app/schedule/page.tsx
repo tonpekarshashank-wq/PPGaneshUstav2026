@@ -1,7 +1,13 @@
 import { ScheduleBrowser } from "@/components/schedule-browser";
 import { getScheduleData } from "@/data/repository";
 
-export default async function SchedulePage() {
+export default async function SchedulePage({
+  searchParams
+}: {
+  searchParams: Promise<{ event?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const selectedEventId = Array.isArray(params.event) ? params.event[0] : params.event;
   const events = await getScheduleData();
   return (
     <div className="space-y-5">
@@ -14,7 +20,7 @@ export default async function SchedulePage() {
           <p className="mt-3 max-w-2xl text-[15.5px] leading-7 text-bg/80">Browse the day-by-day programme, filter by activity type, and open event details for venue and timing updates.</p>
         </div>
       </div>
-      <ScheduleBrowser events={events} />
+      <ScheduleBrowser events={events} selectedEventId={selectedEventId} />
     </div>
   );
 }

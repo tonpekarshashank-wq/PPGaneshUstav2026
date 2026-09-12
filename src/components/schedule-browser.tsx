@@ -52,11 +52,11 @@ function groupEventsByDate(events: FestivalEvent[]) {
   }, []);
 }
 
-function TimelineEvent({ event }: { event: FestivalEvent }) {
+function TimelineEvent({ event, selected = false }: { event: FestivalEvent; selected?: boolean }) {
   const parts = timeParts(event.startsAt);
   const tinted = isTintedEvent(event);
   return (
-    <article className="grid grid-cols-[60px_18px_1fr] gap-3">
+    <article id={`event-${event.id}`} className="scroll-mt-44 grid grid-cols-[60px_18px_1fr] gap-3">
       <time className="pt-4 text-right">
         <span className="block text-sm font-bold leading-none text-ink">{parts.time}</span>
         <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-ink-soft">{parts.period}</span>
@@ -65,7 +65,7 @@ function TimelineEvent({ event }: { event: FestivalEvent }) {
         <span className="absolute inset-y-0 w-px bg-ink/15" aria-hidden="true" />
         <span className={`relative mt-5 h-2.5 w-2.5 rounded-full ring-4 ring-bg ${tinted ? "bg-accent2" : "bg-accent"}`} aria-hidden="true" />
       </div>
-      <div className={`mb-4 rounded-md p-4 shadow-sm ${tinted ? "bg-surface" : "bg-card"}`}>
+      <div className={`mb-4 rounded-md p-4 shadow-sm ${selected ? "ring-2 ring-accent" : ""} ${tinted ? "bg-surface" : "bg-card"}`}>
         <div className="flex flex-wrap items-center gap-2">
           <span className={`${groupForCategory(event.category) === "Puja" ? "bg-accent2-100 text-ink" : "bg-accent-100 text-accent-700"} rounded-pill px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em]`}>{groupForCategory(event.category)}</span>
           <span className="rounded-pill border border-ink/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-ink-soft">{event.state}</span>
@@ -82,17 +82,20 @@ function TimelineEvent({ event }: { event: FestivalEvent }) {
             <span aria-hidden="true">·</span>
             <span lang="en">{event.venueEn}</span>
           </span>
-          <Link href={`/event/${event.slug}`} className="font-bold text-accent-700">
-            Details
-          </Link>
+          {event.registrationUrl ? (
+            <Link href={event.registrationUrl} className="inline-flex min-h-10 items-center rounded-pill bg-accent px-5 text-sm font-extrabold text-white shadow-sm hover:bg-accent-700">
+              Register
+            </Link>
+          ) : null}
         </div>
       </div>
     </article>
   );
 }
 
-export function ScheduleBrowser({ events }: { events: FestivalEvent[] }) {
-  const [date, setDate] = useState<DateFilter>("All");
+export function ScheduleBrowser({ events, selectedEventId }: { events: FestivalEvent[]; selectedEventId?: string }) {
+  const selectedEvent = events.find((event) => event.id === selectedEventId || event.slug === selectedEventId);
+  const [date, setDate] = useState<DateFilter>(selectedEvent ? istDateFromISO(selectedEvent.startsAt) : "All");
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -128,9 +131,7 @@ export function ScheduleBrowser({ events }: { events: FestivalEvent[] }) {
             }`}
             aria-pressed={date === "All"}
           >
-            <span className={`text-[10px] font-bold uppercase ${date === "All" ? "text-white/85" : "text-ink-soft"}`}>All</span>
-            <span className="font-latinDisplay text-[20px] leading-none">12</span>
-            <span className={`mt-1 h-1.5 w-1.5 rounded-full ${date === "All" ? "bg-white" : "bg-accent"}`} aria-hidden="true" />
+            <span className={`font-latinDisplay text-[20px] uppercase leading-none ${date === "All" ? "text-white" : "text-ink"}`}>All</span>
           </button>
           {festivalDates.map((festivalDate) => {
             const parts = dayParts(festivalDate);
@@ -228,7 +229,7 @@ export function ScheduleBrowser({ events }: { events: FestivalEvent[] }) {
                 </div>
                 <div className="space-y-0">
                   {group.events.map((event) => (
-                    <TimelineEvent key={event.id} event={event} />
+                    <TimelineEvent key={event.id} event={event} selected={event.id === selectedEvent?.id} />
                   ))}
                 </div>
               </section>

@@ -2,20 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, CalendarDays, Home, MoreHorizontal, Trophy } from "lucide-react";
+import { Bell, CalendarDays, ClipboardList, Home, MoreHorizontal } from "lucide-react";
 
 const mobileTabs = [
   { href: "/", label: "Home", icon: Home },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/aarti", label: "Aarti", icon: Bell },
-  { href: "/winners", label: "Winners", icon: Trophy },
+  { href: "/registrations", label: "Register", icon: ClipboardList },
   { href: "/more", label: "More", icon: MoreHorizontal }
 ];
 
 const desktopLinks = [
   { href: "/", label: "Home" },
   { href: "/schedule", label: "Schedule" },
-  { href: "/winners", label: "Winners" },
+  { href: "/registrations", label: "Register" },
   { href: "/more", label: "More" }
 ];
 
@@ -86,7 +86,8 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                 <Link href="/" className="hover:text-accent-700">Home</Link>
                 <Link href="/schedule" className="hover:text-accent-700">Schedule</Link>
                 <Link href="/aarti" className="hover:text-accent-700">Aarti</Link>
-                <Link href="/winners" className="hover:text-accent-700">Winners</Link>
+                <Link href="/registrations" className="hover:text-accent-700">Register</Link>
+                <Link href="/more" className="hover:text-accent-700">More</Link>
               </div>
             </nav>
             <nav aria-label="Footer resources">

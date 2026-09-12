@@ -5,6 +5,8 @@ export type AartiSlotState = "upcoming" | "open" | "full" | "closed" | "cancelle
 export type BookingStatus = "confirmed" | "waitlisted" | "cancelled";
 export type DuplicatePolicy = "one_per_festival" | "one_per_day" | "unrestricted";
 export type OpportunityAction = "call" | "whatsapp" | "external_form" | "in_app_form" | "information";
+export type RegistrationEventStatus = "draft" | "open" | "closed" | "archived";
+export type RegistrationEntryStatus = "confirmed" | "cancelled";
 
 export type Announcement = {
   id: string;
@@ -132,6 +134,57 @@ export type ParticipationOpportunity = {
   externalUrl?: string;
   featured: boolean;
   status: ContentStatus;
+};
+
+export type RegistrationEvent = {
+  id: string;
+  eventId: string;
+  eventSlug: string;
+  nameEn: string;
+  nameMr: string;
+  category: string;
+  startsAt: string;
+  venueEn: string;
+  venueMr: string;
+  opensAt: string;
+  closesAt: string;
+  ageGroups: string[];
+  maxEntries?: number;
+  status: RegistrationEventStatus;
+  confirmedCount: number;
+};
+
+export type RegistrationEntryPublic = {
+  id: string;
+  reference: string;
+  registrationEventId: string;
+  eventId: string;
+  eventSlug: string;
+  eventNameEn: string;
+  eventNameMr: string;
+  participantName: string;
+  wing: string;
+  flatNumber: string;
+  ageGroup: string;
+  status: RegistrationEntryStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RegistrationEntry = RegistrationEntryPublic & {
+  mobileHash: string;
+  mobileNumber?: string;
+  cancelledAt?: string;
+};
+
+export type RegistrationInput = {
+  registrationEventId: string;
+  participantName: string;
+  wing: string;
+  flatNumber: string;
+  ageGroup: string;
+  mobile: string;
+  idempotencyKey: string;
 };
 
 export type FestivalSettings = {

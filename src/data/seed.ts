@@ -6,8 +6,11 @@ import type {
   FestivalEvent,
   FestivalSettings,
   ParticipationOpportunity,
+  RegistrationEntry,
+  RegistrationEvent,
   Winner
 } from "@/lib/types";
+import { registrationEventHref } from "@/lib/registrations";
 
 const venue = {
   en: "Palladium Plus Society",
@@ -79,9 +82,11 @@ const officialRows = [
 ] as const;
 
 export const events: FestivalEvent[] = officialRows.map(([date, time, nameEn, nameMr, category], index) => {
+  const id = `event-${index + 1}`;
   const slug = `${date}-${nameEn.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+  const registrationEnabled = ["event-3", "event-5", "event-8", "event-9", "event-14", "event-17"].includes(id);
   return {
-    id: `event-${index + 1}`,
+    id,
     slug,
     nameEn,
     nameMr,
@@ -94,6 +99,7 @@ export const events: FestivalEvent[] = officialRows.map(([date, time, nameEn, na
     category,
     state: "scheduled",
     status: "published",
+    registrationUrl: registrationEnabled ? registrationEventHref(id, slug) : undefined,
     displayOrder: index,
     sampleContent: true
   };
@@ -137,6 +143,29 @@ export function generateAartiSlots(bookings: AartiBooking[] = []): AartiSlot[] {
 }
 
 export const bookings: AartiBooking[] = [];
+
+const registrationEventIds = ["event-3", "event-5", "event-8", "event-9", "event-14", "event-17"];
+
+export const registrationEvents: RegistrationEvent[] = events
+  .filter((event) => registrationEventIds.includes(event.id))
+  .map((event) => ({
+    id: `registration-${event.id}`,
+    eventId: event.id,
+    eventSlug: event.slug,
+    nameEn: event.nameEn,
+    nameMr: event.nameMr,
+    category: event.category,
+    startsAt: event.startsAt,
+    venueEn: event.venueEn,
+    venueMr: event.venueMr,
+    opensAt: ist("2026-09-01", "08:00"),
+    closesAt: event.startsAt,
+    ageGroups: event.category.includes("Kids") || event.nameEn.includes("Children") ? ["6-9", "10-13", "14-17"] : ["Open"],
+    status: "open",
+    confirmedCount: 0
+  }));
+
+export const registrationEntries: RegistrationEntry[] = [];
 
 export const activities: Activity[] = events
   .filter((event) => event.category.includes("Competition") || ["Games", "Community / Marketplace"].includes(event.category))
