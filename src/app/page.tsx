@@ -175,20 +175,20 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      <section className="grid gap-4 lg:grid-cols-[1.35fr_.65fr]">
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,.9fr)] lg:items-start">
         <section aria-labelledby="pamphlet-heading" className="overflow-hidden rounded-lg bg-card shadow-md">
-          <div className="grid h-full gap-0 md:grid-cols-[.95fr_1.05fr]">
+          <div className="grid gap-0 md:grid-cols-[minmax(260px,.95fr)_minmax(260px,1.05fr)] lg:grid-cols-1 xl:grid-cols-[minmax(300px,.95fr)_minmax(280px,1.05fr)]">
             <a href="/schedule-pamphlet.jpeg" target="_blank" rel="noreferrer" className="block bg-accent-700 p-3">
               <Image
                 src="/schedule-pamphlet.jpeg"
                 alt="Palladium Plus Society Ganeshotsav 2026 schedule pamphlet"
                 width={2560}
                 height={2560}
-                className="h-full max-h-[420px] w-full rounded-md object-cover object-top"
+                className="aspect-square h-auto w-full rounded-md object-cover object-top"
                 priority
               />
             </a>
-            <div className="p-5 md:p-6">
+            <div className="flex flex-col justify-center p-5 md:p-6">
               <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Committee pamphlet</p>
               <h2 id="pamphlet-heading" className="mt-3 font-latinDisplay text-3xl text-ink">Event Schedule</h2>
               <p className="mt-3 text-[15.5px] leading-7 text-ink-muted">
@@ -217,7 +217,54 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="rounded-lg bg-accent2 p-5 text-white shadow-md md:p-6">
+        <section aria-labelledby="aarti-sangraha-heading" className="space-y-3">
+          <p className="text-[11.5px] font-bold uppercase tracking-[0.18em] text-ink-soft">Aarti Sangraha</p>
+          <article className="overflow-hidden rounded-lg bg-card shadow-md">
+            <div className="grid grid-cols-[112px_1fr] gap-4 p-4 sm:grid-cols-[150px_1fr] md:p-6 lg:grid-cols-[96px_1fr] lg:p-4">
+              <a
+                href="/aarti-sangraha-2026.pdf"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Read Aarti Sangraha 2026"
+                className="block overflow-hidden rounded-md bg-accent-700 shadow-sm"
+              >
+                <Image
+                  src="/aarti-sangraha-cover.jpg"
+                  alt="Aarti Sangraha 2026 booklet cover"
+                  width={2400}
+                  height={1792}
+                  className="h-36 w-full object-cover object-center sm:h-44 lg:h-32"
+                />
+              </a>
+              <div className="flex min-w-0 flex-col justify-center">
+                <h2 id="aarti-sangraha-heading" className="font-devDisplay text-[24px] font-bold leading-tight text-ink sm:text-[30px] lg:text-[24px]" lang="mr">आरती संग्रह</h2>
+                <p className="mt-1 text-[15px] font-extrabold text-ink-muted sm:text-[18px] lg:text-[15px]">Aarti Sangraha 2026</p>
+                <p className="mt-3 max-w-xl text-[14px] leading-6 text-ink-muted sm:mt-4 sm:text-[16px] sm:leading-7 lg:mt-2 lg:text-[13px] lg:leading-5">
+                  The aartis sung at the mandap, in order. Open it on your phone during aarti.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-3 border-t border-ink/10 p-4 sm:grid-cols-2 lg:p-3">
+              <a
+                href="/aarti-sangraha-2026.pdf"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-12 items-center justify-center rounded-pill bg-accent px-5 text-base font-extrabold text-white hover:bg-accent-700 lg:min-h-11 lg:text-sm"
+              >
+                Read now
+              </a>
+              <a
+                href="/aarti-sangraha-2026.pdf"
+                download="aarti-sangraha-2026.pdf"
+                className="inline-flex min-h-12 items-center justify-center rounded-pill border border-ink/20 bg-card px-5 text-base font-extrabold text-ink lg:min-h-11 lg:text-sm"
+              >
+                Download
+              </a>
+            </div>
+          </article>
+        </section>
+
+        <section className="rounded-lg bg-accent2 p-5 text-white shadow-md md:p-6 lg:col-span-2">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15">
               <Bell size={22} aria-hidden="true" />
@@ -227,7 +274,7 @@ export default async function HomePage() {
               <h2 className="font-devDisplay text-3xl leading-none" lang="mr">आरतीची वेळ</h2>
             </div>
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-1">
+          <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-2">
             <div className="rounded-md bg-white/15 p-4">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Morning</p>
               <p className="mt-2 font-latinDisplay text-3xl leading-none">8:00 am</p>

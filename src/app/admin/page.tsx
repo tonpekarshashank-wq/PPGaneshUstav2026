@@ -11,6 +11,7 @@ export default async function AdminPage() {
   const totalSlots = data.slots.length;
   const eventsToProofread = data.events.filter((event) => event.sampleContent || event.status === "draft").length;
   const resultsPending = data.activities.filter((activity) => !data.winners.some((winner) => winner.activityId === activity.id && winner.status === "published")).length;
+  const registrationCount = data.registrationEntries.filter((entry) => entry.status === "confirmed").length;
   const nextBooking = data.bookings
     .filter((booking) => booking.status === "confirmed")
     .map((booking) => ({ booking, slot: data.slots.find((slot) => slot.id === booking.slotId) }))
@@ -39,11 +40,12 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-5">
         {[
           ["Aarti slots booked", `${bookedSlots} / ${totalSlots}`, "card"],
           ["Events to proofread", eventsToProofread, "card"],
           ["Results pending", resultsPending, "card"],
+          ["Registrations", registrationCount, "card"],
           ["Next aarti", nextBooking ? formatAdminSlot(nextBooking.slot.startsAt) : "None", "sage"]
         ].map(([label, value, tone]) => (
           <article key={label} className={`${tone === "sage" ? "bg-accent2 text-white" : "bg-card text-ink"} rounded-[18px] p-4 shadow-soft`}>
@@ -61,6 +63,8 @@ export default async function AdminPage() {
         slots={data.slots}
         activities={data.activities}
         winners={data.winners}
+        registrationEvents={data.registrationEvents}
+        registrationEntries={data.registrationEntries}
         databaseEnabled={data.databaseEnabled}
       />
     </div>

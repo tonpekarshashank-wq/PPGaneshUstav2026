@@ -8,10 +8,10 @@ import {
   saveEventToDatabase,
   saveWinnerToDatabase
 } from "@/app/admin/neon-actions";
-import { CalendarPlus, ChevronDown, Download, Megaphone, Plus, Save, Trophy, Wand2 } from "lucide-react";
+import { CalendarPlus, ChevronDown, ClipboardList, Download, Megaphone, Plus, Save, Trophy, Wand2 } from "lucide-react";
 import { adminStorageKeys, readAdminEditableData, writeStorageList } from "@/lib/local-storage";
-import type { AartiBooking, AartiSlot, Activity, Announcement, ContentStatus, EventState, FestivalEvent, Winner } from "@/lib/types";
-import { bookingsToCsv } from "@/lib/csv";
+import type { AartiBooking, AartiSlot, Activity, Announcement, ContentStatus, EventState, FestivalEvent, RegistrationEntry, RegistrationEvent, Winner } from "@/lib/types";
+import { bookingsToCsv, registrationsToCsv } from "@/lib/csv";
 import { formatDateIST, formatTimeIST } from "@/lib/time";
 
 type Props = {
@@ -21,10 +21,12 @@ type Props = {
   slots: AartiSlot[];
   activities: Activity[];
   winners: Winner[];
+  registrationEvents: RegistrationEvent[];
+  registrationEntries: RegistrationEntry[];
   databaseEnabled: boolean;
 };
 
-type AdminTab = "bookings" | "events" | "results" | "announcements";
+type AdminTab = "bookings" | "registrations" | "events" | "results" | "announcements";
 
 const statusOptions: ContentStatus[] = ["draft", "published", "archived"];
 const eventStateOptions: EventState[] = ["scheduled", "updated", "cancelled", "completed"];
@@ -196,8 +198,10 @@ export function AdminManager(props: Props) {
   }
 
   const csv = bookingsToCsv(bookings, props.slots);
+  const registrationsCsv = registrationsToCsv(props.registrationEntries);
   const tabs: { id: AdminTab; label: string; count: number }[] = [
     { id: "bookings", label: "Bookings", count: bookings.length },
+    { id: "registrations", label: "Registrations", count: props.registrationEntries.length },
     { id: "events", label: "Events", count: events.length },
     { id: "results", label: "Results", count: winners.length },
     { id: "announcements", label: "Announcements", count: announcements.length }
@@ -233,6 +237,21 @@ export function AdminManager(props: Props) {
           }
         >
           <BookingsTable bookings={bookings} slots={props.slots} onChange={updateBooking} />
+        </Panel>
+      ) : null}
+
+      {activeTab === "registrations" ? (
+        <Panel
+          icon={<ClipboardList size={20} />}
+          title="Registrations"
+          action={
+            <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(registrationsCsv)}`} download="registrations.csv" className="inline-flex min-h-10 items-center gap-2 rounded-pill bg-accent px-4 text-sm font-bold text-white hover:bg-accent-700">
+              <Download size={16} aria-hidden="true" />
+              Export CSV
+            </a>
+          }
+        >
+          <RegistrationsTable entries={props.registrationEntries} registrationEvents={props.registrationEvents} />
         </Panel>
       ) : null}
 
@@ -348,6 +367,51 @@ function BookingsTable({ bookings, slots, onChange }: { bookings: AartiBooking[]
 
 function adminBookingSlotTime(booking: AartiBooking, slots: AartiSlot[]) {
   return slots.find((slot) => slot.id === booking.slotId)?.startsAt ?? booking.createdAt;
+}
+
+function RegistrationsTable({ entries, registrationEvents }: { entries: RegistrationEntry[]; registrationEvents: RegistrationEvent[] }) {
+  if (entries.length === 0) {
+    return <p className="rounded-[18px] bg-surface p-4 text-sm font-semibold text-ink-muted">No registrations found yet.</p>;
+  }
+  const sortedEntries = [...entries].sort((a, b) => {
+    const eventA = registrationEvents.find((event) => event.id === a.registrationEventId)?.startsAt ?? a.createdAt;
+    const eventB = registrationEvents.find((event) => event.id === b.registrationEventId)?.startsAt ?? b.createdAt;
+    return eventA.localeCompare(eventB) || a.participantName.localeCompare(b.participantName);
+  });
+
+  return (
+    <div className="overflow-hidden rounded-[20px] bg-card shadow-soft">
+      <div className="hidden bg-surface px-4 py-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-muted min-[900px]:grid min-[900px]:grid-cols-[1.35fr_1.2fr_.65fr_.7fr_.85fr_.8fr]">
+        <div>Event</div>
+        <div>Participant</div>
+        <div>Flat</div>
+        <div>Age</div>
+        <div>Mobile</div>
+        <div>Status</div>
+      </div>
+      {sortedEntries.map((entry) => {
+        const registrationEvent = registrationEvents.find((event) => event.id === entry.registrationEventId);
+        return (
+          <article key={entry.id} className="grid gap-3 border-t border-ink/10 p-4 text-sm text-ink min-[900px]:grid-cols-[1.35fr_1.2fr_.65fr_.7fr_.85fr_.8fr] min-[900px]:items-center">
+            <div className="min-w-0">
+              <p className="truncate font-bold">{entry.eventNameEn}</p>
+              <p className="text-[12.5px] text-ink-soft">
+                {registrationEvent ? `${formatDateIST(registrationEvent.startsAt)} · ${formatTimeIST(registrationEvent.startsAt)}` : entry.eventId}
+              </p>
+            </div>
+            <div>
+              <p className="font-bold">{entry.participantName}</p>
+              <p className="text-[12.5px] text-ink-soft">{entry.reference}</p>
+            </div>
+            <p className="font-semibold text-ink-muted">{entry.wing}-{entry.flatNumber}</p>
+            <p className="font-semibold text-ink-muted">{entry.ageGroup}</p>
+            <p className="text-ink-muted">{entry.mobileNumber ?? "Not captured"}</p>
+            <StatusTag tone={entry.status === "confirmed" ? "success" : "danger"}>{entry.status}</StatusTag>
+          </article>
+        );
+      })}
+    </div>
+  );
 }
 
 function EventsTable({

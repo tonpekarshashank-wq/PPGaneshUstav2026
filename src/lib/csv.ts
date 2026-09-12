@@ -1,4 +1,4 @@
-import type { AartiBooking, AartiSlot } from "@/lib/types";
+import type { AartiBooking, AartiSlot, RegistrationEntry } from "@/lib/types";
 
 function escapeCell(value: unknown): string {
   const text = String(value ?? "");
@@ -23,6 +23,24 @@ export function bookingsToCsv(bookings: AartiBooking[], slots: AartiSlot[]): str
         booking.createdAt
       ];
     })
+  ];
+  return rows.map((row) => row.map(escapeCell).join(",")).join("\n");
+}
+
+export function registrationsToCsv(entries: RegistrationEntry[]): string {
+  const rows = [
+    ["reference", "event_name", "participant_name", "wing", "flat_number", "age_group", "mobile_number", "status", "created_at"],
+    ...entries.map((entry) => [
+      entry.reference,
+      entry.eventNameEn,
+      entry.participantName,
+      entry.wing,
+      entry.flatNumber,
+      entry.ageGroup,
+      entry.mobileNumber ?? "",
+      entry.status,
+      entry.createdAt
+    ])
   ];
   return rows.map((row) => row.map(escapeCell).join(",")).join("\n");
 }
