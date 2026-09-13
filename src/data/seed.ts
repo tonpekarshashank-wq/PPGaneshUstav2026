@@ -26,7 +26,7 @@ export const settings: FestivalSettings = {
   festivalEndDate: "2026-09-25",
   timezone: "Asia/Kolkata",
   duplicatePolicy: "one_per_festival",
-  defaultCapacity: 5,
+  defaultCapacity: 10,
   cancellationCutoffHours: 6,
   waitlistPromotion: "admin_review"
 };

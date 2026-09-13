@@ -55,7 +55,12 @@ export async function submitAartiBooking(input: BookingInput): Promise<{ booking
     revalidatePath("/admin");
     return { booking: mapBooking(rows[0] as Record<string, unknown>) };
   } catch (error) {
-    const message = error instanceof Error && error.message.includes("slot_already_booked") ? "This slot is already booked." : "Unable to book this slot.";
+    const detail = error instanceof Error ? error.message : "";
+    const message = detail.includes("slot_full")
+      ? "This slot is full."
+      : detail.includes("duplicate_flat_slot")
+        ? "This flat already has a booking for this slot."
+        : "Unable to book this slot.";
     return { error: message };
   }
 }

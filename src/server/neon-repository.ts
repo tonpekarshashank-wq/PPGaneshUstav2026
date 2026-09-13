@@ -94,7 +94,7 @@ export async function getNeonAartiSlots(): Promise<AartiSlot[]> {
       bookingOpensAt: iso(item.bookingOpensAt),
       bookingClosesAt: iso(item.bookingClosesAt),
       waitlistEnabled: Boolean(item.waitlistEnabled),
-      state: Number(item.confirmedCount) > 0 ? "full" : (item.status as AartiSlot["state"])
+      state: Number(item.confirmedCount) >= Number(item.capacity) ? "full" : (item.status as AartiSlot["state"])
     };
   });
 }

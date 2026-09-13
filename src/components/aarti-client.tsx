@@ -57,7 +57,7 @@ function officialAartiSlots(existingSlots: AartiSlot[]): AartiSlot[] {
         labelMr: period === "morning" ? "सकाळची आरती" : "संध्याकाळची आरती",
         startsAt: `${date}T${time}:00+05:30`,
         reportingAt: `${date}T${reportingTime}:00+05:30`,
-        capacity: 1,
+        capacity: 10,
         confirmedCount: 0,
         waitlistedCount: 0,
         bookingOpensAt: "2026-09-01T08:00:00+05:30",
@@ -134,7 +134,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       ...selectedSlot,
       confirmedCount,
       waitlistedCount,
-      state: confirmedCount > 0 ? "full" : selectedSlot.state
+      state: confirmedCount >= selectedSlot.capacity ? "full" : selectedSlot.state
     };
   }, [bookings, selectedSlot]);
 
@@ -149,8 +149,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       consent: true,
       idempotencyKey: `${normalizeFlat(form.wing, form.flatNumber)}-${hashMobile(form.mobile)}-${enrichedSlot.id}`
     };
-    const singleBookingSlot = { ...enrichedSlot, capacity: 1, waitlistEnabled: false };
-    const result = canCreateBooking(input, singleBookingSlot, bookings, settings.duplicatePolicy);
+    const result = canCreateBooking(input, { ...enrichedSlot, waitlistEnabled: false }, bookings, settings.duplicatePolicy);
     if (!result.ok) {
       setMessage(isAllowedFlatNumber(input.flatNumber) ? result.reason : "Please enter a valid flat number between 101-106 and 1101-1106.");
       return;
@@ -197,7 +196,10 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
 
   function dateFullyBooked(date: string) {
     const slotsForDate = displaySlots.filter((slot) => slot.eventDate === date);
-    return slotsForDate.length > 0 && slotsForDate.every((slot) => bookings.some((booking) => booking.slotId === slot.id && booking.status === "confirmed"));
+    return slotsForDate.length > 0 && slotsForDate.every((slot) => {
+      const confirmedCount = bookings.filter((booking) => booking.slotId === slot.id && booking.status === "confirmed").length;
+      return confirmedCount >= slot.capacity;
+    });
   }
 
   return (
@@ -233,26 +235,27 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
         <div className="mt-4 text-[11.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Step 2 · Slot</div>
         <div className="mt-3 grid gap-3">
           {dateSlots.map((slot) => {
-            const isBooked = bookings.some((booking) => booking.slotId === slot.id && booking.status === "confirmed");
+            const confirmedCount = bookings.filter((booking) => booking.slotId === slot.id && booking.status === "confirmed").length;
+            const isFull = confirmedCount >= slot.capacity;
             const active = selectedSlotId === slot.id;
             return (
               <button
                 key={slot.id}
                 type="button"
                 onClick={() => setSelectedSlotId(slot.id)}
-                disabled={isBooked}
-                className={`${active && !isBooked ? "border-2 border-accent2 bg-card" : isBooked ? "border border-transparent bg-surface" : "border border-ink/10 bg-card"} rounded-[20px] p-4 text-left shadow-soft transition-colors disabled:cursor-not-allowed`}
+                disabled={isFull}
+                className={`${active && !isFull ? "border-2 border-accent2 bg-card" : isFull ? "border border-transparent bg-surface" : "border border-ink/10 bg-card"} rounded-[20px] p-4 text-left shadow-soft transition-colors disabled:cursor-not-allowed`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <BiTitle en={slot.labelEn} mr={slot.labelMr} />
-                  <span className={`${isBooked ? "bg-neutral-300 text-ink" : "bg-accent2 text-white"} shrink-0 rounded-pill px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em]`}>
-                    {isBooked ? "Booked" : "Open"}
+                  <span className={`${isFull ? "bg-neutral-300 text-ink" : "bg-accent2 text-white"} shrink-0 rounded-pill px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em]`}>
+                    {isFull ? "Full" : "Open"}
                   </span>
                 </div>
                 <div className="mt-4 flex items-baseline gap-3 border-t border-ink/10 pt-4">
-                  <span className={`${isBooked ? "text-ink-soft" : "text-accent"} font-latinDisplay text-[24px] leading-none`}>{formatTimeIST(slot.startsAt).toLowerCase()}</span>
-                  <span className={`${isBooked ? "text-ink-soft" : "text-ink-muted"} text-[13px] leading-5`}>
-                    {isBooked ? bookedSlots.find((booking) => booking.slotId === slot.id)?.flatNumber ? bookingFlat(bookedSlots.find((booking) => booking.slotId === slot.id) as AartiBooking) : "Already booked" : `report by ${formatTimeIST(slot.reportingAt).toLowerCase()}`}
+                  <span className={`${isFull ? "text-ink-soft" : "text-accent"} font-latinDisplay text-[24px] leading-none`}>{formatTimeIST(slot.startsAt).toLowerCase()}</span>
+                  <span className={`${isFull ? "text-ink-soft" : "text-ink-muted"} text-[13px] leading-5`}>
+                    report by {formatTimeIST(slot.reportingAt).toLowerCase()}
                   </span>
                 </div>
               </button>
@@ -261,25 +264,6 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
         </div>
         <p className="mt-4 text-[13px] leading-6 text-ink-muted">25 September has a morning slot only because Maha Aarti is at 4:30 pm. Cancellations close at 2:00 am on the day.</p>
 
-        <section className="mt-6">
-          <h2 className="font-latinDisplay text-[21px] leading-tight text-ink">Booked slots</h2>
-          {bookedSlots.length > 0 ? (
-            <ul className="mt-3 grid gap-2">
-              {bookedSlots.map((booking) => {
-                const slot = displaySlots.find((item) => item.id === booking.slotId);
-                if (!slot) return null;
-                return (
-                  <li key={booking.id} className="rounded-[18px] bg-surface p-3 text-[13px] leading-5 text-ink-muted">
-                    <span className="block font-bold text-ink">{formatDateIST(slot.eventDate)} · {periodText(slot.period)} · {formatTimeIST(slot.startsAt).toLowerCase()}</span>
-                    <span className="block">{bookingFlat(booking)} · {booking.residentName}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="mt-3 rounded-[18px] bg-surface p-3 text-[13px] font-semibold text-ink-muted">No slots booked yet.</p>
-          )}
-        </section>
       </section>
 
       <section className="space-y-5">
@@ -318,8 +302,46 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
           </form>
         ) : null}
 
+        <BookedSlotsList bookedSlots={bookedSlots} displaySlots={displaySlots} />
       </section>
     </div>
+  );
+}
+
+function BookedSlotsList({ bookedSlots, displaySlots }: { bookedSlots: AartiBooking[]; displaySlots: AartiSlot[] }) {
+  const groupedSlots = displaySlots
+    .map((slot) => ({
+      slot,
+      bookings: bookedSlots.filter((booking) => booking.slotId === slot.id)
+    }))
+    .filter((group) => group.bookings.length > 0)
+    .sort((a, b) => a.slot.startsAt.localeCompare(b.slot.startsAt));
+
+  return (
+    <section className="rounded-[26px] bg-card p-4 shadow-soft lg:p-5">
+      <h2 className="font-latinDisplay text-[21px] leading-tight text-ink">Booked slots</h2>
+      {groupedSlots.length > 0 ? (
+        <div className="mt-3 grid gap-3">
+          {groupedSlots.map(({ slot, bookings }) => (
+            <article key={slot.id} className="rounded-[18px] bg-surface p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-[13px] font-bold leading-5 text-ink">{formatDateIST(slot.eventDate)} · {periodText(slot.period)} · {formatTimeIST(slot.startsAt).toLowerCase()}</h3>
+                <span className="rounded-pill bg-card px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-ink-soft">{bookings.length} booked</span>
+              </div>
+              <ul className="mt-3 grid gap-2">
+                {bookings.map((booking) => (
+                  <li key={booking.id} className="rounded-[14px] bg-card px-3 py-2 text-[13px] leading-5 text-ink-muted">
+                    <span className="font-bold text-ink">{bookingFlat(booking)}</span> · {booking.residentName}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 rounded-[18px] bg-surface p-3 text-[13px] font-semibold text-ink-muted">No slots booked yet.</p>
+      )}
+    </section>
   );
 }
 

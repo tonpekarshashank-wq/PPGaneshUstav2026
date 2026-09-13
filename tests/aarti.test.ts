@@ -86,4 +86,39 @@ describe("aarti slots", () => {
     );
     expect(result).toMatchObject({ ok: true, status: "waitlisted" });
   });
+
+  it("allows multiple flats in the same slot until capacity", () => {
+    const slot = { ...generateAartiSlots()[0]!, capacity: 10, waitlistEnabled: false };
+    const bookings: AartiBooking[] = Array.from({ length: 9 }, (_, index) => ({
+      id: `booking-${index + 1}`,
+      reference: `PPG-${index + 1}`,
+      slotId: slot.id,
+      residentName: `Resident ${index + 1}`,
+      wing: "E",
+      flatNumber: String(index < 6 ? 101 + index : 201 + index - 6),
+      mobileHash: hashMobile(`98765432${String(index).padStart(2, "0")}`),
+      participantCount: 1,
+      status: "confirmed",
+      verifiedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    }));
+
+    const result = canCreateBooking(
+      {
+        slotId: slot.id,
+        residentName: "Tenth Resident",
+        wing: "H",
+        flatNumber: "1106",
+        mobile: "9876543299",
+        participantCount: 1,
+        consent: true,
+        idempotencyKey: "idem-h-1106"
+      },
+      slot,
+      bookings,
+      "one_per_festival"
+    );
+
+    expect(result).toMatchObject({ ok: true, status: "confirmed" });
+  });
 });
