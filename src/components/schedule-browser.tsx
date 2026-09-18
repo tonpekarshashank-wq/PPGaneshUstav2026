@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MapPin, Search, X } from "lucide-react";
 import { BiTitle } from "@/components/BiTitle";
 import type { FestivalEvent } from "@/lib/types";
-import { festivalDates, formatTimeIST, istDateFromISO } from "@/lib/time";
+import { festivalDatesFrom, formatTimeIST, isTodayOrFutureIST, istDateFromISO } from "@/lib/time";
 
 const categoryGroups = ["All", "Puja", "Kids", "Cultural", "Games", "Community"] as const;
 type DateFilter = "All" | string;
@@ -93,21 +93,23 @@ function TimelineEvent({ event, selected = false }: { event: FestivalEvent; sele
   );
 }
 
-export function ScheduleBrowser({ events, selectedEventId }: { events: FestivalEvent[]; selectedEventId?: string }) {
-  const selectedEvent = events.find((event) => event.id === selectedEventId || event.slug === selectedEventId);
+export function ScheduleBrowser({ events, selectedEventId, todayDate }: { events: FestivalEvent[]; selectedEventId?: string; todayDate: string }) {
+  const currentEvents = useMemo(() => events.filter((event) => isTodayOrFutureIST(event.startsAt, todayDate)), [events, todayDate]);
+  const currentFestivalDates = useMemo(() => festivalDatesFrom(todayDate), [todayDate]);
+  const selectedEvent = currentEvents.find((event) => event.id === selectedEventId || event.slug === selectedEventId);
   const [date, setDate] = useState<DateFilter>(selectedEvent ? istDateFromISO(selectedEvent.startsAt) : "All");
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const eventCounts = useMemo(
     () =>
-      festivalDates.reduce<Record<string, number>>((counts, festivalDate) => {
-        counts[festivalDate] = events.filter((event) => istDateFromISO(event.startsAt) === festivalDate).length;
+      currentFestivalDates.reduce<Record<string, number>>((counts, festivalDate) => {
+        counts[festivalDate] = currentEvents.filter((event) => istDateFromISO(event.startsAt) === festivalDate).length;
         return counts;
       }, {}),
-    [events]
+    [currentEvents, currentFestivalDates]
   );
-  const filtered = events
+  const filtered = currentEvents
     .filter((event) => {
       const text = `${event.nameEn} ${event.nameMr} ${event.category} ${event.venueEn} ${event.venueMr}`.toLowerCase();
       return (
@@ -133,7 +135,7 @@ export function ScheduleBrowser({ events, selectedEventId }: { events: FestivalE
           >
             <span className={`font-latinDisplay text-[20px] uppercase leading-none ${date === "All" ? "text-white" : "text-ink"}`}>All</span>
           </button>
-          {festivalDates.map((festivalDate) => {
+          {currentFestivalDates.map((festivalDate) => {
             const parts = dayParts(festivalDate);
             const active = festivalDate === date;
             return (
@@ -145,6 +147,7 @@ export function ScheduleBrowser({ events, selectedEventId }: { events: FestivalE
                   active ? "bg-accent text-white shadow-sm" : "bg-surface text-ink"
                 }`}
                 aria-pressed={active}
+                aria-label={parts.heading}
               >
                 <span className={`text-[10px] font-bold uppercase ${active ? "text-white/85" : "text-ink-soft"}`}>{parts.weekdayShort}</span>
                 <span className="font-latinDisplay text-[22px] leading-none">{parts.day}</span>
@@ -205,8 +208,8 @@ export function ScheduleBrowser({ events, selectedEventId }: { events: FestivalE
 
       <header className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-accent-700">{date === "All" ? "Complete programme" : "Selected day"}</p>
-          <h2 className="mt-1 font-latinDisplay text-3xl text-ink">{date === "All" ? "All 12 days" : dayParts(date).heading}</h2>
+          <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-accent-700">{date === "All" ? "Current programme" : "Selected day"}</p>
+          <h2 className="mt-1 font-latinDisplay text-3xl text-ink">{date === "All" ? "Today onwards" : dayParts(date).heading}</h2>
           <p className="mt-1 text-sm font-bold text-ink-muted">{filtered.length} event{filtered.length === 1 ? "" : "s"}</p>
         </div>
         {date !== "All" || category !== "All" || query ? (

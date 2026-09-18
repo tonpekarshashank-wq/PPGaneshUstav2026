@@ -22,6 +22,14 @@ export function nowInISTDate(now = new Date()): string {
   return istDateFromISO(now.toISOString());
 }
 
+export function festivalDatesFrom(today: string): string[] {
+  return festivalDates.filter((date) => date >= today);
+}
+
+export function isTodayOrFutureIST(iso: string, today = nowInISTDate()): boolean {
+  return istDateFromISO(iso) >= today;
+}
+
 export function festivalState(now = new Date()): "upcoming" | "in_progress" | "completed" {
   const today = nowInISTDate(now);
   if (today < FESTIVAL_START_DATE) return "upcoming";

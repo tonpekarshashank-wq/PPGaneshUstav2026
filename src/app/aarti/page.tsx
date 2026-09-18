@@ -1,6 +1,9 @@
 import { BiTitle } from "@/components/BiTitle";
 import { AartiClient } from "@/components/aarti-client";
 import { getAartiData } from "@/data/repository";
+import { nowInISTDate } from "@/lib/time";
+
+export const dynamic = "force-dynamic";
 
 export default async function AartiPage() {
   const { slots, settings, bookings, databaseEnabled } = await getAartiData();
@@ -16,7 +19,13 @@ export default async function AartiPage() {
           <p className="mt-3 max-w-2xl text-[15.5px] leading-7 text-bg/80">Pick a date, pick a slot, book it. One slot per flat.</p>
         </div>
       </div>
-      <AartiClient slots={slots} bookings={bookings} settings={settings} databaseEnabled={databaseEnabled} />
+      <AartiClient
+        slots={slots}
+        bookings={bookings}
+        settings={settings}
+        databaseEnabled={databaseEnabled}
+        todayDate={nowInISTDate()}
+      />
     </div>
   );
 }

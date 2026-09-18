@@ -1,5 +1,8 @@
 import { ScheduleBrowser } from "@/components/schedule-browser";
 import { getScheduleData } from "@/data/repository";
+import { nowInISTDate } from "@/lib/time";
+
+export const dynamic = "force-dynamic";
 
 export default async function SchedulePage({
   searchParams
@@ -20,7 +23,7 @@ export default async function SchedulePage({
           <p className="mt-3 max-w-2xl text-[15.5px] leading-7 text-bg/80">Browse the day-by-day programme, filter by activity type, and open event details for venue and timing updates.</p>
         </div>
       </div>
-      <ScheduleBrowser events={events} selectedEventId={selectedEventId} />
+      <ScheduleBrowser events={events} selectedEventId={selectedEventId} todayDate={nowInISTDate()} />
     </div>
   );
 }

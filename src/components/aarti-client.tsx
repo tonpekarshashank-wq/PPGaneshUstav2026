@@ -6,13 +6,14 @@ import { BiTitle } from "@/components/BiTitle";
 import { adminStorageKeys, readStorageList, writeStorageList } from "@/lib/local-storage";
 import type { AartiBooking, AartiSlot, BookingInput, FestivalSettings } from "@/lib/types";
 import { bookingReference, canCreateBooking, hashMobile, isAllowedFlatNumber, normalizeFlat } from "@/lib/booking";
-import { festivalDates, formatDateIST, formatTimeIST } from "@/lib/time";
+import { festivalDatesFrom, formatDateIST, formatTimeIST } from "@/lib/time";
 
 type Props = {
   slots: AartiSlot[];
   bookings: AartiBooking[];
   settings: FestivalSettings;
   databaseEnabled: boolean;
+  todayDate: string;
 };
 
 function dayParts(date: string) {
@@ -71,9 +72,13 @@ function officialAartiSlots(existingSlots: AartiSlot[]): AartiSlot[] {
   return slots;
 }
 
-export function AartiClient({ slots, bookings: initialBookings, settings, databaseEnabled }: Props) {
+export function AartiClient({ slots, bookings: initialBookings, settings, databaseEnabled, todayDate }: Props) {
   const displaySlots = useMemo(() => officialAartiSlots(slots), [slots]);
-  const firstValidDate = festivalDates.find((date) => displaySlots.some((slot) => slot.eventDate === date)) ?? festivalDates[0];
+  const bookableDates = useMemo(
+    () => festivalDatesFrom(todayDate).filter((date) => displaySlots.some((slot) => slot.eventDate === date)),
+    [displaySlots, todayDate]
+  );
+  const firstValidDate = bookableDates[0] ?? "";
   const [selectedDate, setSelectedDate] = useState(firstValidDate);
   const [selectedSlotId, setSelectedSlotId] = useState(displaySlots.find((slot) => slot.eventDate === firstValidDate)?.id ?? "");
   const [bookings, setBookings] = useState<AartiBooking[]>(initialBookings);
@@ -87,7 +92,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
   });
 
   useEffect(() => {
-    if (!displaySlots.some((slot) => slot.eventDate === selectedDate)) {
+    if (!bookableDates.includes(selectedDate)) {
       setSelectedDate(firstValidDate);
       setSelectedSlotId(displaySlots.find((slot) => slot.eventDate === firstValidDate)?.id ?? "");
       return;
@@ -95,7 +100,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
     if (!displaySlots.some((slot) => slot.id === selectedSlotId && slot.eventDate === selectedDate)) {
       setSelectedSlotId(displaySlots.find((slot) => slot.eventDate === selectedDate)?.id ?? "");
     }
-  }, [displaySlots, firstValidDate, selectedDate, selectedSlotId]);
+  }, [bookableDates, displaySlots, firstValidDate, selectedDate, selectedSlotId]);
 
   useEffect(() => {
     if (databaseEnabled) {
@@ -125,7 +130,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
 
   const dateSlots = displaySlots.filter((slot) => slot.eventDate === selectedDate);
   const selectedSlot = displaySlots.find((slot) => slot.id === selectedSlotId) ?? dateSlots[0];
-  const selectedDateParts = dayParts(selectedDate);
+  const selectedDateParts = selectedDate ? dayParts(selectedDate) : null;
   const enrichedSlot = useMemo(() => {
     if (!selectedSlot) return undefined;
     const confirmedCount = bookings.filter((booking) => booking.slotId === selectedSlot.id && booking.status === "confirmed").length;
@@ -141,6 +146,10 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
   async function submitBooking(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!enrichedSlot) return;
+    if (enrichedSlot.eventDate < todayDate) {
+      setMessage("Past dates can no longer be booked.");
+      return;
+    }
     const input: BookingInput = {
       ...form,
       slotId: enrichedSlot.id,
@@ -191,7 +200,11 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
   }
 
   const bookedSlots = bookings
-    .filter((booking) => booking.status === "confirmed")
+    .filter((booking) => {
+      if (booking.status !== "confirmed") return false;
+      const slot = displaySlots.find((item) => item.id === booking.slotId);
+      return Boolean(slot && slot.eventDate >= todayDate);
+    })
     .sort((a, b) => bookingSlotTime(a, displaySlots).localeCompare(bookingSlotTime(b, displaySlots)));
 
   function dateFullyBooked(date: string) {
@@ -207,7 +220,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       <section className="rounded-[26px] bg-card p-4 shadow-soft lg:p-5">
         <div className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Step 1 · Date</div>
         <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-2">
-          {festivalDates.map((date) => {
+          {bookableDates.map((date) => {
             const parts = dayParts(date);
             const hasSlots = displaySlots.some((slot) => slot.eventDate === date);
             const fullyBooked = dateFullyBooked(date);
@@ -230,6 +243,11 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
               </button>
             );
           })}
+          {bookableDates.length === 0 ? (
+            <p role="status" className="w-full rounded-[18px] bg-surface p-4 text-[13px] font-semibold leading-5 text-ink-muted">
+              Aarti bookings have closed for this festival.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-4 text-[11.5px] font-bold uppercase tracking-[0.14em] text-ink-soft">Step 2 · Slot</div>
@@ -267,7 +285,7 @@ export function AartiClient({ slots, bookings: initialBookings, settings, databa
       </section>
 
       <section className="space-y-5">
-        {enrichedSlot ? (
+        {enrichedSlot && selectedDateParts ? (
           <form onSubmit={submitBooking} className="rounded-t-[26px] bg-card px-5 pb-5 pt-4 shadow-[0_-8px_26px_rgba(60,35,15,.14)] lg:rounded-[26px] lg:shadow-soft">
             <div className="mx-auto mb-4 h-1 w-10 rounded-pill bg-ink/20" aria-hidden="true" />
             <h2 className="font-latinDisplay text-[21px] leading-tight text-ink">Confirm your booking</h2>
